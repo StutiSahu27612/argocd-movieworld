@@ -410,3 +410,119 @@ The project is configured with the following coverage thresholds:
 - **Branch Coverage**: 80%
 - **Method Coverage**: 80%
 - **Class Coverage**: 80%
+
+## Kubernetes Deployment
+
+The application can be deployed to a Kubernetes cluster using the provided manifests or Helm chart.
+
+### Prerequisites
+
+- Kubernetes cluster (EKS or any other Kubernetes distribution)
+- Istio service mesh installed
+- Prometheus and Grafana for monitoring
+- kubectl CLI
+- Helm CLI (for Helm deployment)
+
+### Kubernetes Manifests
+
+The Kubernetes manifests are located in the `kubernetes/manifests` directory:
+
+```
+kubernetes/manifests/
+├── configmap.yaml         # Application configuration
+├── deployment.yaml        # Deployment configuration
+├── istio-destinationrule.yaml  # Istio destination rules
+├── istio-gateway.yaml     # Istio gateway configuration
+├── istio-virtualservice.yaml   # Istio virtual service routes
+├── secret.yaml            # Database credentials
+└── service.yaml           # Service definition
+```
+
+To deploy using the manifests:
+
+```bash
+# Apply the manifests
+kubectl apply -f kubernetes/manifests/
+
+# Verify the deployment
+kubectl get pods -l app=movieworld
+kubectl get svc movieworld
+kubectl get virtualservice movieworld
+```
+
+### Helm Chart
+
+The Helm chart is located in the `kubernetes/helm/movieworld` directory:
+
+```
+kubernetes/helm/movieworld/
+├── Chart.yaml            # Chart metadata
+├── templates/            # Kubernetes manifest templates
+│   ├── _helpers.tpl      # Template helpers
+│   ├── configmap.yaml    # ConfigMap template
+│   ├── deployment.yaml   # Deployment template
+│   ├── hpa.yaml          # HorizontalPodAutoscaler template
+│   ├── istio-destinationrule.yaml  # Istio DestinationRule template
+│   ├── istio-gateway.yaml          # Istio Gateway template
+│   ├── istio-virtualservice.yaml   # Istio VirtualService template
+│   ├── secret.yaml       # Secret template
+│   ├── service.yaml      # Service template
+│   ├── serviceaccount.yaml         # ServiceAccount template
+│   └── servicemonitor.yaml         # ServiceMonitor template for Prometheus
+└── values.yaml           # Default configuration values
+```
+
+### Service Discovery in Kubernetes
+
+When running in Kubernetes, the application uses Kubernetes service discovery for inter-service communication:
+
+1. **Service Names as DNS**: 
+   - The MovieWorld service connects to the MovieReview service using the Kubernetes service name: `http://moviereview:9093`
+   - This is configured in the ConfigMap and passed as an environment variable `MOVIE_REVIEW_SERVICE_URL`
+   - Kubernetes DNS automatically resolves the service name to the correct pod IP(s)
+
+2. **Benefits**:
+   - No hardcoded IPs - service discovery is automatic
+   - Works with pod scaling and recreation - the service name remains stable
+   - Compatible with Istio service mesh for advanced traffic management
+
+To deploy using Helm:
+
+```bash
+# Install the chart
+helm install movieworld kubernetes/helm/movieworld
+
+# Upgrade an existing release
+helm upgrade movieworld kubernetes/helm/movieworld
+
+# Customize the deployment
+helm install movieworld kubernetes/helm/movieworld \
+  --set replicaCount=3 \
+  --set image.tag=v1.0.0 \
+  --set opentelemetry.endpoint=http://custom-otel-collector:4317
+```
+
+### Observability in Kubernetes
+
+When deployed to Kubernetes with Istio:
+
+1. **Metrics**: 
+   - Prometheus automatically scrapes metrics from `/actuator/prometheus` endpoint
+   - ServiceMonitor resource configures Prometheus Operator for scraping
+   - View metrics in Grafana dashboards or Istio's Kiali dashboard
+   - Both application metrics and JVM metrics are collected
+   - Custom metrics from `@Observed` annotations and `MetricsAspect` are included
+
+2. **Tracing**:
+   - OpenTelemetry exports traces to the configured collector
+   - Istio adds its own tracing headers and spans
+   - View traces in Jaeger or other tracing backends
+
+3. **Logging**:
+   - Container logs are collected by the Kubernetes logging stack
+   - Structured logs include trace and span IDs for correlation
+
+4. **Service Mesh Monitoring**:
+   - Istio provides additional metrics and visualizations
+   - Kiali dashboard shows service topology and health
+   - Grafana dashboards for Istio metrics are available

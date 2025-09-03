@@ -1,0 +1,25 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: movieworld
+spec:
+  hosts:
+  - "movieworld.example.com"
+  - "movieworld"
+  gateways:
+  - movieworld-gateway
+  - mesh
+  http:
+  - match:
+    - uri:
+        prefix: /api/movieworld
+    route:
+    - destination:
+        host: movieworld
+        port:
+          number: 9091
+        subset: v1
+    retries:
+      attempts: 3
+      perTryTimeout: 2s
+    timeout: 5s

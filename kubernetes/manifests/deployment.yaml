@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: movieworld
+  labels:
+    app: movieworld
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: movieworld
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: movieworld
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "9091"
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: movieworld
+        image: ${DOCKER_REGISTRY}/movieworld:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9091
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "prod"
+        - name: SERVER_PORT
+          value: "9091"
+        - name: MOVIE_REVIEW_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: movieworld-config
+              key: moviereview-service-url
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        - name: OTEL_RESOURCE_ATTRIBUTES
+          value: "service.name=movieworld,service.version=1.0.0,deployment.environment=production"
+        - name: OTEL_METRICS_EXPORTER
+          value: "otlp"
+        - name: OTEL_LOGS_EXPORTER
+          value: "otlp"
+        - name: OTEL_PROPAGATORS
+          value: "tracecontext,baggage,b3"
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: movieworld-config
+              key: database-url
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: movieworld-secrets
+              key: database-username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: movieworld-secrets
+              key: database-password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 9091
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 9091
+          initialDelaySeconds: 60
+          periodSeconds: 15
+        volumeMounts:
+        - name: config-volume
+          mountPath: /app/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: movieworld-config
