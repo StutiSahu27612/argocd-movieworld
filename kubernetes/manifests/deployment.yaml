@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: movieworld
-        image: ${DOCKER_REGISTRY}/movieworld:latest
+        image: IMAGE
         imagePullPolicy: Always
         ports:
         - containerPort: 9091
@@ -74,8 +74,9 @@ spec:
           httpGet:
             path: /actuator/health
             port: 9091
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 10
+          failureThreshold: 5
         livenessProbe:
           httpGet:
             path: /actuator/health

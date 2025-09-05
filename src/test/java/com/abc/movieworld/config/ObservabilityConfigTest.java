@@ -2,6 +2,7 @@ package com.abc.movieworld.config;
 
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
+import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.sdk.resources.Resource;
 import io.opentelemetry.semconv.resource.attributes.ResourceAttributes;
 import org.junit.jupiter.api.Nested;
@@ -9,6 +10,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -16,11 +21,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ObservabilityConfigTest {
+    
+    /**
+     * Test configuration to provide mock beans
+     */
+    @Configuration
+    static class TestConfig {
+        @Bean
+        @Primary
+        public OpenTelemetry mockOpenTelemetry() {
+            return OpenTelemetry.noop();
+        }
+    }
 
     @Nested
-    @SpringBootTest
+    @SpringBootTest(classes = {ObservabilityConfig.class, ObservabilityConfigTest.TestConfig.class})
     @ActiveProfiles("test")
-    @TestPropertySource(properties = {"otel.sdk.disabled=false"})
+    @TestPropertySource(properties = {"spring.application.name=test-service", "otel.sdk.disabled=false", "management.tracing.enabled=true"})
     class MainConfigTest {
         @Autowired
         private ObservabilityConfig observabilityConfig;
@@ -48,6 +65,8 @@ public class ObservabilityConfigTest {
     }
     
     @Nested
+    @SpringBootTest(classes = {ObservabilityConfig.FallbackConfig.class, ObservabilityConfigTest.TestConfig.class})
+    @TestPropertySource(properties = {"otel.sdk.disabled=true"})
     class FallbackConfigTest {
         @Test
         void testFallbackConfig() {

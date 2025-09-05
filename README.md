@@ -1,6 +1,24 @@
 # Movie World Service
 
-Movie World Service is a RESTful API service that provides CRUD operations for movies. It communicates with the Movie Review service to fetch reviews for movies. The service is fully observable with metrics, logs, and traces using OpenTelemetry and Micrometer.
+Movie World Service is a RESTful API service that provides CRUD operations for movies. It communicates with the Movie Review service to fetch reviews for movies and serves as an API gateway between the frontend and the review service. The service is fully observable with metrics, logs, and traces using OpenTelemetry and Micrometer.
+
+## Recent Updates
+
+### Observability Improvements
+- Fixed 404 error for `/actuator/loggers` endpoint by explicitly enabling it
+- Enhanced test configuration for OpenTelemetry to avoid external dependencies
+- Updated Kubernetes ConfigMaps to include loggers endpoint configuration
+- Added WebConfig to serve static images from the `/images` directory
+
+### Kubernetes Deployment Enhancements
+- Increased readiness probe initialDelaySeconds from 30 to 60 seconds
+- Added failureThreshold: 5 to readiness probes for more retry attempts
+- Updated RDS database endpoint in ConfigMaps
+
+### Communication Flow Improvements
+- Enhanced CORS configuration to allow requests from the Angular frontend
+- Added proper static resource handling for movie images
+- Fixed data duplication issue in SQL initialization
 
 ## Technologies Used
 
@@ -37,12 +55,40 @@ The application follows a layered architecture with clear separation of concerns
 5. **Mapper Layer**: Converts between entities and DTOs
    - `MovieMapper`: Maps between Movie entities and MovieDTOs
 
+## Communication Flow
+
+The MovieWorld service plays a central role in the application architecture:
+
+1. **Frontend to MovieWorld**: 
+   - The Angular frontend communicates directly with MovieWorld for movie data
+   - Requests include: listing movies, getting movie details, creating/updating/deleting movies
+   - Static movie images are served from MovieWorld's `/images` endpoint
+
+2. **MovieWorld to MovieReview**:
+   - When detailed movie information with reviews is requested, MovieWorld acts as an API gateway
+   - MovieWorld calls the MovieReview service to fetch review data
+   - MovieWorld combines movie data with review data and returns the complete response
+
+3. **Data Flow Diagram**:
+   ```
+   Angular Frontend <--> MovieWorld Service <--> MovieReview Service
+                          |                        |
+                          v                        v
+                      Movie Database          Review Database
+   ```
+
+4. **API Gateway Pattern**:
+   - MovieWorld implements the API Gateway pattern for review operations
+   - This simplifies the frontend by providing a single point of contact
+   - Enables better security, monitoring, and error handling
+
 6. **Model Layer**: Domain entities
    - `Movie`: Entity representing a movie
 
 7. **Configuration Layer**: Application configuration
    - `OpenApiConfig`: Configuration for Swagger/OpenAPI
    - `ObservabilityConfig`: Configuration for metrics, tracing, and logging
+   - `WebConfig`: Configuration for CORS and static resource handling
 
 ## Best Practices Implemented
 
@@ -75,7 +121,9 @@ The application uses the following environment variables:
 - `MYSQL_USERNAME`: MySQL username (default: `root`)
 - `MYSQL_PASSWORD`: MySQL password (default: `root`)
 - `LOG_FILE_PATH`: Path to log file (default: `logs/movieworld.log`)
-- `MOVIE_REVIEW_SERVICE_URL`: URL of the Movie Review service (default: `http://localhost:9091`)
+- `MOVIE_REVIEW_SERVICE_URL`: URL of the Movie Review service (default: `http://localhost:9093`)
+- `OTEL_SDK_DISABLED`: Disable OpenTelemetry SDK (default: `false`)
+- `DB_HOST`: Database host for Kubernetes deployment (default: `movie-app-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com`)
 - `OTEL_EXPORTER_OTLP_ENDPOINT`: OpenTelemetry collector endpoint (default: `http://localhost:4317`)
 
 ## Building the Application
@@ -293,7 +341,8 @@ Then access the Jaeger UI at http://localhost:16686
 The application uses structured logging with trace correlation:
 
 - Log format includes trace and span IDs
-- Log levels configurable via Actuator endpoint
+- Log levels configurable via `/actuator/loggers` endpoint
+- Dynamic log level adjustment at runtime
 - Logs can be correlated with traces and metrics
 
 ### Integration with Observability Stack
@@ -438,6 +487,13 @@ kubernetes/manifests/
 └── service.yaml           # Service definition
 ```
 
+#### Important Kubernetes Configuration Notes
+
+- **Readiness Probe**: Configured with 60-second initial delay and 5 retries to ensure the application is fully initialized before receiving traffic
+- **ConfigMap**: Includes explicit configuration for actuator endpoints, including loggers
+- **Database**: Uses RDS endpoint `movie-app-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com`
+- **Service Discovery**: Uses Kubernetes DNS to connect to MovieReview service at `http://moviereview:9093`
+
 To deploy using the manifests:
 
 ```bash
@@ -480,6 +536,7 @@ When running in Kubernetes, the application uses Kubernetes service discovery fo
    - The MovieWorld service connects to the MovieReview service using the Kubernetes service name: `http://moviereview:9093`
    - This is configured in the ConfigMap and passed as an environment variable `MOVIE_REVIEW_SERVICE_URL`
    - Kubernetes DNS automatically resolves the service name to the correct pod IP(s)
+   - The frontend connects to MovieWorld using the service name: `http://movieworld:9091`
 
 2. **Benefits**:
    - No hardcoded IPs - service discovery is automatic
