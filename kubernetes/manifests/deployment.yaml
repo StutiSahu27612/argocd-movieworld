@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
       - name: movieworld
-        image: IMAGE
+        image: dev-bookmymovie-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com
         imagePullPolicy: Always
         ports:
         - containerPort: 9091
