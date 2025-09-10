@@ -462,7 +462,7 @@ The project is configured with the following coverage thresholds:
 
 ## Kubernetes Deployment
 
-The application can be deployed to a Kubernetes cluster using the provided manifests or Helm chart.
+The application can be deployed to a Kubernetes cluster using the provided manifests or Helm chart. All components of the Movie application (MovieWorld, MovieReview, and MovieApp Frontend) are deployed in the `movie` namespace for better isolation and management.
 
 ### Prerequisites
 
@@ -474,10 +474,11 @@ The application can be deployed to a Kubernetes cluster using the provided manif
 
 ### Kubernetes Manifests
 
-The Kubernetes manifests are located in the `kubernetes/manifests` directory:
+The Kubernetes manifests are located in the `kubernetes/manifests` directory. All manifests are configured to use the `movie` namespace:
 
 ```
 kubernetes/manifests/
+├── namespace.yaml         # Movie namespace definition
 ├── configmap.yaml         # Application configuration
 ├── deployment.yaml        # Deployment configuration
 ├── istio-destinationrule.yaml  # Istio destination rules
@@ -497,13 +498,16 @@ kubernetes/manifests/
 To deploy using the manifests:
 
 ```bash
+# Create the namespace first
+kubectl apply -f kubernetes/manifests/namespace.yaml
+
 # Apply the manifests
 kubectl apply -f kubernetes/manifests/
 
 # Verify the deployment
-kubectl get pods -l app=movieworld
-kubectl get svc movieworld
-kubectl get virtualservice movieworld
+kubectl get pods -n movie -l app=movieworld
+kubectl get svc -n movie movieworld
+kubectl get virtualservice -n movie movieworld
 ```
 
 ### Helm Chart
@@ -533,10 +537,11 @@ kubernetes/helm/movieworld/
 When running in Kubernetes, the application uses Kubernetes service discovery for inter-service communication:
 
 1. **Service Names as DNS**: 
-   - The MovieWorld service connects to the MovieReview service using the Kubernetes service name: `http://moviereview:9093`
+   - The MovieWorld service connects to the MovieReview service using the Kubernetes service name: `http://moviereview.movie.svc.cluster.local:9093`
    - This is configured in the ConfigMap and passed as an environment variable `MOVIE_REVIEW_SERVICE_URL`
    - Kubernetes DNS automatically resolves the service name to the correct pod IP(s)
-   - The frontend connects to MovieWorld using the service name: `http://movieworld:9091`
+   - The frontend connects to MovieWorld using the service name: `http://movieworld.movie.svc.cluster.local:9091`
+   - All services are in the `movie` namespace for better organization
 
 2. **Benefits**:
    - No hardcoded IPs - service discovery is automatic
@@ -546,14 +551,17 @@ When running in Kubernetes, the application uses Kubernetes service discovery fo
 To deploy using Helm:
 
 ```bash
-# Install the chart
-helm install movieworld kubernetes/helm/movieworld
+# Create the namespace if it doesn't exist
+kubectl create namespace movie
+
+# Install the chart in the movie namespace
+helm install movieworld kubernetes/helm/movieworld --namespace movie
 
 # Upgrade an existing release
-helm upgrade movieworld kubernetes/helm/movieworld
+helm upgrade movieworld kubernetes/helm/movieworld --namespace movie
 
 # Customize the deployment
-helm install movieworld kubernetes/helm/movieworld \
+helm install movieworld kubernetes/helm/movieworld --namespace movie \
   --set replicaCount=3 \
   --set image.tag=v1.0.0 \
   --set opentelemetry.endpoint=http://custom-otel-collector:4317

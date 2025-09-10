@@ -3,6 +3,7 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: {{ include "movieworld.fullname" . }}-gateway
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "movieworld.labels" . | nindent 4 }}
 spec:

@@ -1,6 +1,7 @@
 # Default values for movieworld.
 # This is a YAML-formatted file.
 
+namespace: movie
 replicaCount: 2
 
 image:

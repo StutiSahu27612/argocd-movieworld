@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "movieworld.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "movieworld.labels" . | nindent 4 }}
     app: {{ include "movieworld.name" . }}

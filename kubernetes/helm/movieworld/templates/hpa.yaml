@@ -3,6 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "movieworld.fullname" . }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "movieworld.labels" . | nindent 4 }}
 spec:

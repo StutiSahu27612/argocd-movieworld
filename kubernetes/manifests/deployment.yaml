@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: movieworld
+  namespace: movie
   labels:
     app: movieworld
     version: v1
