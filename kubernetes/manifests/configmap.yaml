@@ -6,7 +6,9 @@ metadata:
 data:
   application.properties: |
     # Database Configuration
-    spring.datasource.url=jdbc:mysql://${DB_HOST:dev-bookmymovie-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com}:${DB_PORT:3306}/${DB_NAME:movieworld}
+    spring.datasource.url=jdbc:mysql://${DB_HOST:movieworld-mysql.movie.svc.cluster.local}:${DB_PORT:3306}/${DB_NAME:movieworld}
+    spring.datasource.username=${DB_USER:movieworld}
+    spring.datasource.password=${DB_PASSWORD:movieworldpass}
     spring.jpa.hibernate.ddl-auto=update
     spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
     
@@ -31,5 +33,5 @@ data:
     # Logging Configuration
     logging.pattern.level=%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]
   
-  database-url: jdbc:mysql://dev-bookmymovie-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com:3306/movieworld
+  database-url: jdbc:mysql://movieworld-mysql.movie.svc.cluster.local:3306/movieworld
   moviereview-service-url: http://moviereview:9093

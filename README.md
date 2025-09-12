@@ -13,7 +13,8 @@ Movie World Service is a RESTful API service that provides CRUD operations for m
 ### Kubernetes Deployment Enhancements
 - Increased readiness probe initialDelaySeconds from 30 to 60 seconds
 - Added failureThreshold: 5 to readiness probes for more retry attempts
-- Updated RDS database endpoint in ConfigMaps
+- Replaced RDS database with in-cluster MySQL database with persistent storage
+- Added MySQL deployment with PV and PVC for data persistence
 
 ### Communication Flow Improvements
 - Enhanced CORS configuration to allow requests from the Angular frontend
@@ -485,14 +486,18 @@ kubernetes/manifests/
 ├── istio-gateway.yaml     # Istio gateway configuration
 ├── istio-virtualservice.yaml   # Istio virtual service routes
 ├── secret.yaml            # Database credentials
-└── service.yaml           # Service definition
+├── service.yaml           # Service definition
+├── mysql-deployment.yaml  # MySQL database deployment
+├── mysql-pv-pvc.yaml      # MySQL persistent volume and claim
+├── mysql-secret.yaml      # MySQL credentials
+└── mysql-service.yaml     # MySQL service definition
 ```
 
 #### Important Kubernetes Configuration Notes
 
 - **Readiness Probe**: Configured with 60-second initial delay and 5 retries to ensure the application is fully initialized before receiving traffic
 - **ConfigMap**: Includes explicit configuration for actuator endpoints, including loggers
-- **Database**: Uses RDS endpoint `movie-app-db.cvggya6kg1r7.us-east-1.rds.amazonaws.com`
+- **Database**: Uses in-cluster MySQL database at `movieworld-mysql.movie.svc.cluster.local:3306`
 - **Service Discovery**: Uses Kubernetes DNS to connect to MovieReview service at `http://moviereview:9093`
 
 To deploy using the manifests:
