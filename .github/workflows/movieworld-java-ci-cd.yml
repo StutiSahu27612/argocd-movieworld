@@ -201,9 +201,10 @@ jobs:
 
       - name: Deploy Kubernetes resources
         run: |
-          kubectl create ns movie
+
           # delete if exist
           kubectl delete -f kubernetes/manifests/ || true
+         
           kubectl apply -f kubernetes/manifests/ 
 
       - name: Verify Deployment Rollout
