@@ -183,7 +183,6 @@ jobs:
   
   
   
-  
   CD-JOB:
     name: CD - Deploy to EKS
     runs-on: self-hosted
