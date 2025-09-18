@@ -111,7 +111,6 @@ jobs:
     # Build the Docker image using Dockerfile & tag it with commit SHA, & push it to ECR repository
    - name: Build Docker Image
      run: |
-      cd movieworld
       docker build -t ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }} .
       docker tag ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
 
@@ -123,24 +122,22 @@ jobs:
      run: |
         docker push ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
  
-
- 
  
 # Update Deployment YAML with the new image and Deploy ECR image to EKS 
    - name: Update Deployment YAML with New Image
      run: |
       aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
       IMAGE="${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}"
-      sed -i "s|image: .*|image: $IMAGE|" movieworld/kubernetes/manifests/deployment.yaml
-      cd movieworld
-      kubectl apply -f kubernetes/manifests/mysql-secret.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/mysql-pv-pvc.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/mysql-service.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/mysql-deployment.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/configmap.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/secret.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/deployment.yaml --validate=false
-      kubectl apply -f kubernetes/manifests/service.yaml --validate=false
+      sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+      cd kubernetes/manifests
+      kubectl apply -f mysql-secret.yaml --validate=false
+      kubectl apply -f mysql-pv-pvc.yaml --validate=false
+      kubectl apply -f mysql-service.yaml --validate=false
+      kubectl apply -f mysql-deployment.yaml --validate=false
+      kubectl apply -f configmap.yaml --validate=false
+      kubectl apply -f secret.yaml --validate=false
+      kubectl apply -f deployment.yaml --validate=false
+      kubectl apply -f service.yaml --validate=false
      
 
 
