@@ -3,9 +3,9 @@ name: MovieWorld CI/CD Pipeline
 on:
   push:
     branches: ["feature-app"]
-    paths:
-      - 'movieworld/**'
-      - '.github/workflows/movieworld-ci-cd.yml'
+    # paths:
+    #   - 'movieworld/**'
+    #   - '.github/workflows/movieworld-ci-cd.yml'
   pull_request:
     branches: ["feature-app"]
     paths:
