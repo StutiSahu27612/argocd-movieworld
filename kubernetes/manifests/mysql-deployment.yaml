@@ -42,6 +42,9 @@ spec:
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
+        securityContext:
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
         resources:
           requests:
             memory: "256Mi"
@@ -65,3 +68,9 @@ spec:
       - name: mysql-persistent-storage
         persistentVolumeClaim:
           claimName: movieworld-mysql-pvc
+
+
+
+
+
+

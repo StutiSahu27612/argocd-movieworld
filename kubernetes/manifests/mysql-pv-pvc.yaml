@@ -3,16 +3,20 @@ kind: PersistentVolume
 metadata:
   name: movieworld-mysql-pv
   labels:
-    type: local
     app: movieworld
 spec:
-  storageClassName: manual
   capacity:
-    storage: 100Mi
+    storage: 1Gi
+  volumeMode: Filesystem
   accessModes:
     - ReadWriteOnce
-  hostPath:
-    path: "/mnt/data/movieworld-mysql"
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: mysql-ebs 
+  awsElasticBlockStore:
+    volumeID: vol-0f22ecffb14d3824d  # Specify the AWS EBS volume ID
+    fsType: ext4  # File system type (e.g., ext4, xfs)
+
+
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -22,9 +26,9 @@ metadata:
   labels:
     app: movieworld
 spec:
-  storageClassName: manual
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteOnce  # Should match the access mode of the PV
+  storageClassName: mysql-ebs  # Reference the StorageClass used by the PV
   resources:
     requests:
-      storage: 100Mi
+      storage: 200Mi  
