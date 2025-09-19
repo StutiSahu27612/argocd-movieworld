@@ -183,6 +183,7 @@ jobs:
       IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
       cd kubernetes/manifests
+      kubectl create ns movie
       kubectl apply -f mysql-secret.yaml --validate=false
       kubectl apply -f mysql-pv-pvc.yaml --validate=false
       kubectl apply -f mysql-service.yaml --validate=false
