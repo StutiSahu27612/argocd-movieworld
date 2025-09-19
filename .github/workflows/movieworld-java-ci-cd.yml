@@ -149,13 +149,17 @@ jobs:
        path: trivy-image-results.txt
        retention-days: 7
 
-  # Login to Amazon ECR
+   # Authenticate AWS with Docker to interact with an Amazon ECR registry
    - name: Login to Amazon ECR
-     uses: aws-actions/amazon-ecr-login@v2
-     id: login-ecr
-     with:
-       role-session-name: ${{ secrets.EKS_CLUSTER_NAME }}-session
-       aws-region: ${{ secrets.AWS_REGION }}
+     run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+  # # Login to Amazon ECR
+  #  - name: Login to Amazon ECR
+  #    uses: aws-actions/amazon-ecr-login@v2
+  #    id: login-ecr
+  #    with:
+  #      role-session-name: ${{ secrets.EKS_CLUSTER_NAME }}-session
+  #      aws-region: ${{ secrets.AWS_REGION }}
 
   # Push Docker image to ECR
    - name: Tag and push Docker image to ECR
