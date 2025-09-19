@@ -185,14 +185,15 @@ jobs:
       cd kubernetes/manifests
 
       ## Delete existing resources
-      kubectl delete -f mysql-secret.yaml  
-      kubectl delete -f mysql-pv-pvc.yaml  
-      kubectl delete -f mysql-service.yaml  
-      kubectl delete -f mysql-deployment.yaml  
-      kubectl delete -f configmap.yaml 
-      kubectl delete -f secret.yaml 
-      kubectl delete -f deployment.yaml 
-      kubectl delete -f service.yaml  
+      # kubectl delete -f mysql-secret.yaml  
+      # kubectl delete -f mysql-pv-pvc.yaml  
+      # kubectl delete -f mysql-service.yaml  
+      # kubectl delete -f mysql-deployment.yaml  
+      # kubectl delete -f configmap.yaml 
+      # kubectl delete -f secret.yaml 
+      # kubectl delete -f deployment.yaml 
+      # kubectl delete -f service.yaml  
+      kubectl delete ns movie
       sleep 20
 
       ## Create new resources
