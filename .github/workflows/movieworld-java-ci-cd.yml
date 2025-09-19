@@ -183,11 +183,24 @@ jobs:
       IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
       cd kubernetes/manifests
-      kubectl create ns movie --validate=false 
+
+      ## Delete existing resources
+      kubectl delete -f mysql-secret.yaml --validate=false --if-exists
+      kubectl delete -f mysql-pv-pvc.yaml --validate=false --if-exists
+      kubectl delete -f mysql-service.yaml --validate=false --if-exists
+      kubectl delete -f mysql-deployment.yaml --validate=false --if-exists
+      kubectl delete -f configmap.yaml --validate=false --if-exists
+      kubectl delete -f secret.yaml --validate=false --if-exists
+      kubectl delete -f deployment.yaml --validate=false --if-exists
+      kubectl delete -f service.yaml --validate=false --if-exists
+
+      ## Create new resources
+      kubectl create ns movie --validate=false --if-not-exists
       kubectl apply -f mysql-secret.yaml --validate=false
       kubectl apply -f mysql-pv-pvc.yaml --validate=false
       kubectl apply -f mysql-service.yaml --validate=false
       kubectl apply -f mysql-deployment.yaml --validate=false
+      sleep 20
       kubectl apply -f configmap.yaml --validate=false
       kubectl apply -f secret.yaml --validate=false
       kubectl apply -f deployment.yaml --validate=false
