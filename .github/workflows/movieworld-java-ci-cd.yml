@@ -3,19 +3,14 @@ name: MovieWorld CI/CD Pipeline
 on:
   push:
     branches: ["feature-app"]
-    # paths:
-    #   - 'movieworld/**'
-    #   - '.github/workflows/movieworld-ci-cd.yml'
   pull_request:
     branches: ["feature-app"]
-    paths:
-      - 'movieworld/**'
-      - '.github/workflows/movieworld-ci-cd.yml'
+
 permissions:
     id-token: write
     contents: read
     actions: write
- 
+    packages: write # Needed for Docker operations
  
 jobs:
   CI:
@@ -58,11 +53,11 @@ jobs:
 
     # Run unit tests and generate reports
    - name: Run Unit Tests
-     run: mvn -B test
+     run: mvn test
 
   # Generate JaCoCo coverage report
    - name: Generate JaCoCo Coverage Report
-     run: mvn -B jacoco:report
+     run: mvn jacoco:report
 
   # Upload test results
    - name: Upload Test Results
@@ -70,7 +65,7 @@ jobs:
      uses: actions/upload-artifact@v4
      with:
       name: test-results
-      path: /target/surefire-reports/
+      path: ./target/surefire-reports/
       retention-days: 7
       if-no-files-found: warn
 
@@ -81,53 +76,112 @@ jobs:
      with:
       name: coverage-report
       path: |
-        /target/site/jacoco/
-        /target/site/jacoco.xml
-        /target/jacoco.exec
+        ./target/site/jacoco/
+        ./target/site/jacoco.xml
+        ./target/jacoco.exec
       retention-days: 7
       if-no-files-found: warn
 
+  # SonarQube scan
+   - name: Cache SonarQube packages
+          uses: actions/cache@v1
+          with:
+            path: ~/.sonar/cache
+            key: ${{ runner.os }}-sonar
+            restore-keys: ${{ runner.os }}-sonar
+   - name: Cache Maven packages
+          uses: actions/cache@v1
+          with:
+            path: ~/.m2
+            key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+            restore-keys: ${{ runner.os }}-m2
+   - name: SonarQube Build and analyze
+     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+     run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+
     # Run Build
    - name: Run Build
-     run: mvn -B clean install
+     run: mvn clean package
 
 
-  # # Build trust between GitHub and AWS using OIDC connector
-  #  - name: configure aws credentials
-  #    uses: aws-actions/configure-aws-credentials@v3
-  #    with:
-  #       role-to-assume: ${{ secrets.AWS_IAM_ARN }}
-  #       role-session-name: java-app-session 
-  #       aws-region: ${{ secrets.AWS_REGION }}
+  # Configure AWS credentials for ECR and EKS
+   - name: Configure AWS credentials
+     uses: aws-actions/configure-aws-credentials@v3
+     with:
+       role-to-assume: ${{ secrets.AWS_IAM_ARN }}
+       role-session-name: movieworld-session
+       aws-region: ${{ secrets.AWS_REGION }}
  
 
  
-  # Authenticate AWS with Docker to interact with an Amazon ECR registry
+  # Set up Docker Buildx
+   - name: Set up Docker Buildx
+     uses: docker/setup-buildx-action@v3
+
+  # Build Docker image locally (without pushing)
+   - name: Build Docker image
+     id: build-image
+     uses: docker/build-push-action@v5
+     with:
+       context: .
+       load: true # Export to Docker engine instead of pushing
+       tags: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
+       cache-from: type=gha
+       cache-to: type=gha,mode=max
+       # Add build args if needed
+       # build-args: |
+       #   ARG1=value1
+       #   ARG2=value2
+
+  # Scan Docker image with Trivy
+   - name: Run Trivy vulnerability scanner
+     uses: aquasecurity/trivy-action@master
+     with:
+       image-ref: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
+       format: 'table'
+       output: 'trivy-image-results.txt'
+       severity: 'CRITICAL,HIGH'
+       exit-code: '0'  # Don't fail the build, just report
+
+  # Upload Trivy scan results
+   - name: Upload Trivy image scan results
+     uses: actions/upload-artifact@v4
+     with:
+       name: trivy-image-scan-results
+       path: trivy-image-results.txt
+       retention-days: 7
+
+  # Login to Amazon ECR
    - name: Login to Amazon ECR
-     run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
- 
-      
- 
-    # Build the Docker image using Dockerfile & tag it with commit SHA, & push it to ECR repository
-   - name: Build Docker Image
-     run: |
-      docker build -t ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }} .
-      docker tag ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }} ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
+     uses: aws-actions/amazon-ecr-login@v2
+     id: login-ecr
 
- 
+  # Push Docker image to ECR
+   - name: Tag and push Docker image to ECR
+     id: push-image
+     uses: docker/build-push-action@v5
+     with:
+       context: .
+       push: true
+       tags: |
+         ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
+       cache-from: type=gha
+       cache-to: type=gha,mode=max
+       # Add build args if needed
+       # build-args: |
+       #   ARG1=value1
+       #   ARG2=value2
 
- 
-# Push Docker image to Amazon ECR
-   - name: push docker image
-     run: |
-        docker push ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
- 
- 
 # Update Deployment YAML with the new image and Deploy ECR image to EKS 
    - name: Update Deployment YAML with New Image
+     if: success() # Only run if previous steps succeeded
      run: |
       aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
-      IMAGE="${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}"
+      # Use the full ECR image URL for the deployment
+      IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
       cd kubernetes/manifests
       kubectl apply -f mysql-secret.yaml --validate=false
