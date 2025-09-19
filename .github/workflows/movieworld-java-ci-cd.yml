@@ -185,16 +185,16 @@ jobs:
       cd kubernetes/manifests
 
       ## Delete existing resources
-      kubectl delete -f mysql-secret.yaml --ignore-not-found  
-      kubectl delete -f mysql-pv-pvc.yaml --ignore-not-found  
-      kubectl delete -f mysql-service.yaml --ignore-not-found  
-      kubectl delete -f mysql-deployment.yaml --ignore-not-found  
-      kubectl delete -f configmap.yaml --ignore-not-found 
-      kubectl delete -f secret.yaml --ignore-not-found 
-      kubectl delete -f deployment.yaml --ignore-not-found
-      kubectl delete -f service.yaml --ignore-not-found  
+      # kubectl delete -f mysql-secret.yaml --ignore-not-found  
+      # kubectl delete -f mysql-pv-pvc.yaml --ignore-not-found  
+      # kubectl delete -f mysql-service.yaml --ignore-not-found  
+      # kubectl delete -f mysql-deployment.yaml --ignore-not-found  
+      # kubectl delete -f configmap.yaml --ignore-not-found 
+      # kubectl delete -f secret.yaml --ignore-not-found 
+      # kubectl delete -f deployment.yaml --ignore-not-found
+      # kubectl delete -f service.yaml --ignore-not-found  
 
-      sleep 20
+      # sleep 20
 
       ## Create new resources
       kubectl create ns movie --validate=false
