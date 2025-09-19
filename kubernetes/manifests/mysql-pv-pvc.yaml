@@ -13,7 +13,7 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: mysql-ebs 
   awsElasticBlockStore:
-    volumeID: vol-0f22ecffb14d3824d  # Specify the AWS EBS volume ID
+    volumeID: vol-08751070450dc4272  # Specify the AWS EBS volume ID
     fsType: ext4  # File system type (e.g., ext4, xfs)
 ---
 apiVersion: v1
