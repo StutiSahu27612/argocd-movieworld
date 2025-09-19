@@ -197,16 +197,16 @@ jobs:
       sleep 20
 
       ## Create new resources
-      kubectl create ns movie --ignore-not-found
-      kubectl apply -f mysql-secret.yaml --ignore-not-found
-      kubectl apply -f mysql-pv-pvc.yaml --ignore-not-found
-      kubectl apply -f mysql-service.yaml --ignore-not-found
-      kubectl apply -f mysql-deployment.yaml ---ignore-not-found
+      kubectl create ns movie --validate=false
+      kubectl apply -f mysql-secret.yaml --validate=false
+      kubectl apply -f mysql-pv-pvc.yaml --validate=false
+      kubectl apply -f mysql-service.yaml --validate=false
+      kubectl apply -f mysql-deployment.yaml --validate=false
       sleep 20
-      kubectl apply -f configmap.yaml --ignore-not-found
-      kubectl apply -f secret.yaml --ignore-not-found
-      kubectl apply -f deployment.yaml --ignore-not-found
-      kubectl apply -f service.yaml --ignore-not-found
+      kubectl apply -f configmap.yaml --validate=false
+      kubectl apply -f secret.yaml --validate=false
+      kubectl apply -f deployment.yaml --validate=false
+      kubectl apply -f service.yaml --validate=false
      
 
 
