@@ -153,6 +153,9 @@ jobs:
    - name: Login to Amazon ECR
      uses: aws-actions/amazon-ecr-login@v2
      id: login-ecr
+     with:
+       role-session-name: ${{ secrets.EKS_CLUSTER_NAME }}-session
+       aws-region: ${{ secrets.AWS_REGION }}
 
   # Push Docker image to ECR
    - name: Tag and push Docker image to ECR
