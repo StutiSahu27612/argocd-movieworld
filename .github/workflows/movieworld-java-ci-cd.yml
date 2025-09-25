@@ -174,259 +174,76 @@ jobs:
        cache-to: type=gha,mode=max
        
 
-# Update Deployment YAML with the new image and Deploy ECR image to EKS 
-   - name: Update Deployment YAML with New Image
-     if: success() # Only run if previous steps succeeded
+  # Add CI Summary
+   - name: Add CI Summary
      run: |
-      aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
-      # Use the full ECR image URL for the deployment
-      IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
-      sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
-      cd kubernetes/manifests
+       echo "### CI Summary ✅" >> $GITHUB_STEP_SUMMARY
+       echo "- Docker image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+       echo "- Test coverage, Trivy FS & Image scan reports uploaded" >> $GITHUB_STEP_SUMMARY
 
-      ## Delete existing resources
-      # kubectl delete -f mysql-secret.yaml --ignore-not-found  
-      # kubectl delete -f mysql-pv-pvc.yaml --ignore-not-found  
-      # kubectl delete -f mysql-service.yaml --ignore-not-found  
-      # kubectl delete -f mysql-deployment.yaml --ignore-not-found  
-      # kubectl delete -f configmap.yaml --ignore-not-found 
-      # kubectl delete -f secret.yaml --ignore-not-found 
-      # kubectl delete -f deployment.yaml --ignore-not-found
-      # kubectl delete -f service.yaml --ignore-not-found  
+  CD:
+    name: Deploy to Kubernetes
+    needs: CI
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      # sleep 20
+      # Authenticate AWS with Docker to interact with an Amazon ECR registry
+      - name: Login to Amazon ECR
+        run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      ## Create new resources
-      kubectl create ns movie --validate=false
-      kubectl apply -f mysql-secret.yaml --validate=false
-      kubectl apply -f mysql-pv-pvc.yaml --validate=false
-      kubectl apply -f mysql-service.yaml --validate=false
-      kubectl apply -f mysql-deployment.yaml --validate=false
-      sleep 20
-      kubectl apply -f configmap.yaml --validate=false
-      kubectl apply -f secret.yaml --validate=false
-      kubectl apply -f deployment.yaml --validate=false
-      kubectl apply -f service.yaml --validate=false
-     
+      # Update Deployment YAML with the new image and Deploy ECR image to EKS 
+      - name: Update Deployment YAML with New Image
+        run: |
+          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
+          # Use the full ECR image URL for the deployment
+          IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
+          sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+          cd kubernetes/manifests
 
 
+          # Delete existing resources
+          kubectl delete -f configmap.yaml --ignore-not-found 
+          kubectl delete -f secret.yaml --ignore-not-found 
+          kubectl delete -f deployment.yaml --ignore-not-found
+          kubectl delete -f service.yaml --ignore-not-found 
+          kubectl delete -f mysql-deployment.yaml --ignore-not-found  
+          kubectl delete -f mysql-secret.yaml --ignore-not-found  
+          kubectl delete -f mysql-sg-pvc.yaml --ignore-not-found  
+          kubectl delete -f mysql-service.yaml --ignore-not-found
 
+          sleep 30
 
-# ###############################################
-# name: MOVIE WORLD - Java CI/CD Pipeline
-# on:
-#   push
-
-# # Permissions required by the workflow for OIDC authentication and repo access
-# permissions:
-#   id-token: write  #  For AWS OIDC authentication
-#   contents: write  #  For checking out code
-# # Redefine env variables at the job level (optional, but keeps it consistent across steps if we use cd step or add steps later)  
-# env:
-#   AWS_REGION: ${{ secrets.AWS_REGION }}
-#   REGISTRY: ${{ secrets.AWS_ACCOUNTNO }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com  # ECR registry URL
-#   REPOSITORY: movieworld-repo # ECR repository name
-#   TRIVY_EXIT_CODE: 0   # Trivy code "0" won't fail the job even if vulnerabilities exist
-#                        # If Set to 1 it will fail pipeline if vulnerabilities are detected
-
-# jobs:
-#   CI-JOB:
-#     runs-on: self-hosted
-#     env:
-#       AWS_REGION: ${{ secrets.AWS_REGION }}                                                  # AWS region
-#       REGISTRY: ${{ secrets.AWS_ACCOUNTNO }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com # ECR registry URL
-#     steps:
-
-#       # Step 1: Checkout the latest code from the repository
-#       - uses: actions/checkout@v5.0.0
-
-#       # Step 2: Build Java application, run tests, and generate JaCoCo coverage
-#       - name: Build with tests and code coverage
-#         run: mvn clean verify
-
-#      # Step 3: Upload JaCoCo HTML coverage report as an artifact
-#       - name: Upload JaCoCo HTML Report
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: code-coverage-report
-#           path: target/site/jacoco/
-#           if-no-files-found: warn
-#           overwrite: true
-
-#      # Step 4: Parse code coverage from JaCoCo XML and summarize for workflow UI
-#       - name: Add Code Coverage Summary
-#         run: |
-#           ls -l target/site/jacoco/
-#           coverage=$(xmllint --xpath "number(//report/counter[@type='LINE']/@covered) div (number(//report/counter[@type='LINE']/@covered) + number(//report/counter[@type='LINE']/@missed)) * 100" target/site/jacoco/jacoco.xml)
-#           coverage=$(printf "%.2f" $coverage)
-#           echo "### 🧪 Code Coverage Report" >> $GITHUB_STEP_SUMMARY
-#           echo "- Code Coverage: ${coverage}% ✅" >> $GITHUB_STEP_SUMMARY
-
-#       # # Step 5: SonarQube scan for advanced static code analysis
-#       # - name: SonarQube Scan
-#       #   uses: sonarsource/sonarqube-scan-action@master
-#       #   env:
-#       #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-#       #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      
-
-#       # Step 6: Run Trivy filesystem scan on build context for vulnerabilities
-#       - name: Run Trivy To Check vulnerability
-#         id: trivy-vulnerability
-#         uses: aquasecurity/trivy-action@master
-#         with:
-#           scan-type: 'fs'                       # File system scan
-#           scan-ref: '.'                         # Scan root of repository
-#           format: table
-#           output: trivy-scan-results.txt        
-#           #exit-code: '0'                       # It is defined in the environment of Github but we can define here also # Set to 1 if you want to fail on vulnerabilities
-#           severity: 'CRITICAL,HIGH'             # Scan only for CRITICAL and HIGH severity issues
-
-#        # Step 7: Upload filesystem scan report
-#       - name: Upload Vulnerabilities Scan Report
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: trivy-report
-#           path: ./trivy-scan-results.txt
-
-#       # Step 8: Authenticate to AWS using OIDC for secure credentialless access
-#       - name: Configure AWS Credentials
-#         uses: aws-actions/configure-aws-credentials@v4.1.0
-#         with:
-#           role-to-assume: ${{ secrets.JAVA_ASSUME_ROLE }}
-#           role-session-name: javaactionssession
-#           aws-region: ${{ secrets.AWS_REGION }}
-
-#       ################################### IF YOU DONT WANT MORE LINES OF CODE AND GO WITH FULL GITHUB SHA BELOW IS THE ACTION ##################################################
-#       # # Login to ECR
-#       # - name: Login to Amazon ECR
-#       #   id: login-ecr
-#       #   uses: aws-actions/amazon-ecr-login@v2
-
-#       # - name: Build, tag, and push docker image to Amazon ECR
-#       #   env:
-#       #     REGISTRY: 974969116672.dkr.ecr.us-east-1.amazonaws.com
-#       #     REPOSITORY: javaappecr
-#       #     IMAGE_TAG: ${{ github.sha }}
-#       #   run: |
-#       #     docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-#       #     docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG     
-
-      
-#       #https://github.com/aws-actions/amazon-ecr-login
-#       # Login to Amazon ECR Private, then build and push a Docker image:
-#       # - name: Login to Amazon ECR
-#       #   id: login-ecr
-#       #   uses: aws-actions/amazon-ecr-login@v2
-
-#       # - name: Build, tag, and push docker image to Amazon ECR
-#       #   env:
-#       #     REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#       #     REPOSITORY: my-ecr-repo
-#       #     IMAGE_TAG: ${{ github.sha }}
-#       #   run: |
-#       #     docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
-#       #     docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-#     ############################################################################################################################################################################   
-
-#       # Step 9: Login to Amazon ECR
-#       - name: Login to Amazon ECR
-#         id: login-ecr
-#         uses: aws-actions/amazon-ecr-login@v2
- 
-#       # Step 10: Use git commit SHA and repository name to generate a unique image tag  
-#       - name: Set image tag using short SHA and repo name
-#         id: set-image-tag
-#         run: |
-#           SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)   # Generate short commit SHA
-#           REPO_NAME=$(basename "$GITHUB_REPOSITORY")      # Repo name
-#           IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
-#           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-#           echo "Generated Docker image tag: $IMAGE_TAG"
-#       # Step 11: Build Docker image and tag with both 'unique' & 'latest'
-#       - name: Build Docker image with both tags
-#         run: |
-#           docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG -t $REGISTRY/$REPOSITORY:latest .      # Build Docker image
-    
-#       # Step 12: Scan built image for vulnerabilities before push (pipeline not failed even if issues found)
-#       - name: Scan built Docker image for vulnerabilities (Trivy)
-#         run: |
-#           echo "Scanning image: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
-#           #trivy image --exit-code 1 --severity CRITICAL,HIGH $REGISTRY/$REPOSITORY:$IMAGE_TAG   # Fail Pipeline if vulnerabilities are detected
-#           trivy image --exit-code 0 --severity CRITICAL,HIGH $REGISTRY/$REPOSITORY:$IMAGE_TAG    # Allow pipeline to proceed eventhough vulnerabilities are detected
-#       # Step 13: Save Trivy image scan report to file
-#       - name: Save Trivy image scan report
-#         run: |
-#           trivy image --format table --output trivy-image-scan.txt $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          # First, create namespace if it doesn't exist
+          kubectl create namespace movie --ignore-exists || true
           
-#       # Step 14: Upload container image vulnerability report as artifact
-#       - name: Upload Trivy image scan report
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: trivy-image-scan
-#           path: trivy-image-scan.txt
+          # Apply the StorageClass and PVC first
+          kubectl apply -f mysql-sg-pvc.yaml -n movie --validate=false
+          
+          # Apply MySQL resources
+          kubectl apply -f mysql-secret.yaml -n movie --validate=false
+          kubectl apply -f mysql-service.yaml -n movie --validate=false
+          kubectl apply -f mysql-deployment.yaml -n movie --validate=false
+          
+          # Wait for MySQL to be ready
+          echo "Waiting for MySQL to be ready..."
+          sleep 45
+          
+          # Apply application resources
+          kubectl apply -f configmap.yaml -n movie --validate=false
+          kubectl apply -f secret.yaml -n movie --validate=false
+          kubectl apply -f deployment.yaml -n movie --validate=false
+          kubectl apply -f service.yaml -n movie --validate=false
+          
+          # Verify deployment status
+          echo "Checking deployment status..."
+          kubectl get pods -n movie
+          
 
-#       # Step 15: Push both unique and 'latest' Docker image tags to Amazon ECR
-#       - name: Push Docker image to Amazon ECR
-#         run: |
-#           docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-#           docker push $REGISTRY/$REPOSITORY:latest
-#       # Step 16: Add CI summary to GitHub Actions UI for quick reference 
-#       - name: Add CI Summary
-#         run: |
-#           echo "### CI Summary ✅" >> $GITHUB_STEP_SUMMARY
-#           echo "- Docker image: $REGISTRY/$REPOSITORY:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
-#           echo "- Code coverage, Trivy FS & Image scan reports uploaded" >> $GITHUB_STEP_SUMMARY
-
-#             # Step 17: Update image tag in Kubernetes deployment manifest    
-#       - name: Update image tag in k8s manifest
-#         run: |
-#           sed -i "s|image: .*|image: $REGISTRY/$REPOSITORY:$IMAGE_TAG|" kubernetes/manifests/deployment.yaml
-#           echo "----- k8s/deployment.yaml after sed -----"
-#           cat kubernetes/manifests/deployment.yaml
-#           git status
-#           git diff kubernetes/manifests/deployment.yaml
-      
-#       # Step 18: Commit and push manifest changes to the repository (triggers Argo CD sync)    
-#       - name: Commit and push manifest changes
-#         run: |
-#           git add kubernetes/manifests/deployment.yaml
-#           git commit -m "ci: update image tag to $IMAGE_TAG" || echo "No changes to commit"
-#           git push origin HEAD:${{ github.ref_name }}      
-
-#       #####################################################################CI COMPLETED, CD STARTS HERE #########################################################################
-  
-  
-  
-#   CD-JOB:
-#     name: CD - Deploy to EKS
-#     runs-on: self-hosted
-#     needs: CI-JOB
-
-#     steps:
-#       - uses: actions/checkout@v5.0.0
-
-#       - name: Configure AWS Credentials for deploy
-#         uses: aws-actions/configure-aws-credentials@v4.1.0
-#         with:
-#           role-to-assume: ${{ secrets.DEPLOY_ASSUME_ROLE }}
-#           aws-region: ${{ secrets.AWS_REGION }}
-  
-
-#       - name: Deploy Kubernetes resources
-#         run: |
-
-#           # delete if exist
-#           kubectl delete -f kubernetes/manifests/ || true
-         
-#           kubectl apply -f kubernetes/manifests/ 
-
-#       - name: Verify Deployment Rollout
-#         run: |
-#           kubectl rollout status deployment/moviereview -n movie
-
-#       - name: Add CD Summary
-#         run: |
-#           echo "### CD Summary ✅" >> $GITHUB_STEP_SUMMARY
-#           echo "- Deployed image: $REGISTRY/$REPOSITORY:${{ needs.CI-JOB.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-#           echo "- Deployment 'java-service' rollout status checked" >> $GITHUB_STEP_SUMMARY    
+      # Add CD Summary
+      - name: Add CD Summary
+        run: |
+          echo "### CD Summary ✅" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployed image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deployment 'movieworld' rollout status checked" >> $GITHUB_STEP_SUMMARY
