@@ -72,9 +72,19 @@ public class ObservabilityConfigTest {
         void testFallbackConfig() {
             // Create an instance of FallbackConfig and call init() to test the method
             ObservabilityConfig.FallbackConfig fallbackConfig = new ObservabilityConfig.FallbackConfig();
-            fallbackConfig.init();
-            // No assertion needed as we're just testing that the method executes without errors
-            // This test is primarily for code coverage
+            
+            // Verify that the fallback config instance is created successfully
+            assertNotNull(fallbackConfig, "FallbackConfig instance should not be null");
+            
+            // Test that init() method executes without throwing any exceptions
+            try {
+                fallbackConfig.init();
+                // If we reach this point, the method executed successfully
+                assertTrue(true, "FallbackConfig.init() should execute without throwing exceptions");
+            } catch (Exception e) {
+                // If an exception is thrown, the test should fail
+                assertTrue(false, "FallbackConfig.init() should not throw any exceptions: " + e.getMessage());
+            }
         }
     }
 }

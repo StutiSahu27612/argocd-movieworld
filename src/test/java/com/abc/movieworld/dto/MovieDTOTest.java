@@ -33,8 +33,8 @@ public class MovieDTOTest {
         assertEquals("Some reviews", movieDTO.getReviews());
 
         MovieDTO movieDTO2 = new MovieDTO(1L, "Inception", "Christopher Nolan", releaseDate, 148, "Sci-Fi", "inception.jpg", "A mind-bending movie", "Some reviews");
-        assertEquals(movieDTO, movieDTO2);
-        assertEquals(movieDTO.hashCode(), movieDTO2.hashCode());
+        assertEquals(movieDTO2, movieDTO);
+        assertEquals(movieDTO2.hashCode(), movieDTO.hashCode());
     }
     
     @Test
@@ -45,10 +45,10 @@ public class MovieDTOTest {
         MovieDTO movieDTO3 = new MovieDTO(2L, "Interstellar", "Christopher Nolan", releaseDate, 169, "Sci-Fi", "interstellar.jpg", "A space exploration movie", "Other reviews");
         
         // Test equals
-        assertEquals(movieDTO1, movieDTO2);
-        assertNotEquals(movieDTO1, movieDTO3);
-        assertNotEquals(movieDTO1, null);
-        assertNotEquals(movieDTO1, new Object());
+        assertEquals(movieDTO2, movieDTO1);
+        assertNotEquals(movieDTO3, movieDTO1);
+        assertNotEquals(null, movieDTO1);
+        assertNotEquals(new Object(), movieDTO1);
         
         // Test hashCode
         assertEquals(movieDTO1.hashCode(), movieDTO2.hashCode());

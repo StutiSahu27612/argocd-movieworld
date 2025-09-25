@@ -4,8 +4,8 @@ import com.abc.movieworld.dto.MovieDTO;
 import com.abc.movieworld.model.Movie;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Mapper class for converting between Movie entity and MovieDTO.
@@ -90,11 +90,11 @@ public class MovieMapper {
      */
     public List<MovieDTO> toDTOList(List<Movie> movies) {
         if (movies == null) {
-            return null;
+            return Collections.emptyList();
         }
         
         return movies.stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

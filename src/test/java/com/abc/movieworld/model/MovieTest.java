@@ -45,10 +45,10 @@ public class MovieTest {
         Movie movie3 = new Movie(2L, "Interstellar", "Christopher Nolan", releaseDate, 169, "Sci-Fi", "interstellar.jpg", "A space exploration movie", "Other reviews");
         
         // Test equals
-        assertEquals(movie1, movie2);
-        assertNotEquals(movie1, movie3);
-        assertNotEquals(movie1, null);
-        assertNotEquals(movie1, new Object());
+        assertEquals(movie2, movie1);
+        assertNotEquals(movie3, movie1);
+        assertNotEquals(null, movie1);
+        assertNotEquals(new Object(), movie1);
         
         // Test hashCode
         assertEquals(movie1.hashCode(), movie2.hashCode());

@@ -53,5 +53,5 @@ public class MovieDTO implements Serializable {
     private String description;
     
     @Schema(description = "Movie reviews (only populated when fetching with reviews)")
-    private Object reviews;
+    private transient Object reviews;
 }

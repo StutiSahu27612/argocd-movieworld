@@ -247,3 +247,4 @@ jobs:
           echo "### CD Summary ✅" >> $GITHUB_STEP_SUMMARY
           echo "- Deployed image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- Deployment 'movieworld' rollout status checked" >> $GITHUB_STEP_SUMMARY
+     
