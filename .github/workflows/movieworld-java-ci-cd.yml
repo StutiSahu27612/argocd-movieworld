@@ -212,6 +212,7 @@ jobs:
           kubectl delete -f mysql-secret.yaml --ignore-not-found  
           kubectl delete -f mysql-sg-pvc.yaml --ignore-not-found  
           kubectl delete -f mysql-service.yaml --ignore-not-found
+          kubectl delete -f service-monitor.yaml --ignore-not-found
 
           sleep 30
 
@@ -235,6 +236,10 @@ jobs:
           kubectl apply -f secret.yaml -n movie --validate=false
           kubectl apply -f deployment.yaml -n movie --validate=false
           kubectl apply -f service.yaml -n movie --validate=false
+
+          # Apply ServiceMonitor
+          kubectl create namespace monitoring --ignore-exists || true
+          kubectl apply -f service-monitor.yaml -n monitoring --validate=false
           
           # Verify deployment status
           echo "Checking deployment status..."
