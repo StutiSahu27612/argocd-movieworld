@@ -217,7 +217,8 @@ jobs:
           sleep 30
 
           # First, create namespace if it doesn't exist
-          kubectl create namespace movie --ignore-exists || true
+          kubectl create namespace movie || true
+
           
           # Apply the StorageClass and PVC first
           kubectl apply -f mysql-sg-pvc.yaml -n movie --validate=false
