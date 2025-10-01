@@ -1,4 +1,4 @@
-# Movie World Service (Running) 
+# Movie World Service (Running)
 
 Movie World Service is a RESTful API service that provides CRUD operations for movies. It communicates with the Movie Review service to fetch reviews for movies and serves as an API gateway between the frontend and the review service. The service is fully observable with metrics, logs, and traces using OpenTelemetry and Micrometer.
 
