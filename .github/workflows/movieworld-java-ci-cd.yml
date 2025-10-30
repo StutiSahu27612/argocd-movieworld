@@ -239,8 +239,8 @@ jobs:
           kubectl apply -f service.yaml -n movie --validate=false
 
           # Apply ServiceMonitor
-          # kubectl create namespace monitoring --ignore-exists || true
-          # kubectl apply -f service-monitor.yaml -n monitoring --validate=false
+          kubectl create namespace monitoring --ignore-exists || true
+          kubectl apply -f service-monitor.yaml -n monitoring --validate=false
           
           # Verify deployment status
           echo "Checking deployment status..."
