@@ -68,3 +68,10 @@ application-local.yml
 
 # OpenTelemetry temporary files
 otel-*
+
+
+# gemini-cli settings
+.gemini/
+
+# GitHub App credentials
+gha-creds-*.json
