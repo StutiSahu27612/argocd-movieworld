@@ -215,7 +215,7 @@ jobs:
           kubectl delete -f service-monitor.yaml --ignore-not-found
           kubectl delete ns movie
 
-          sleep 30
+          sleep 120
 
           # First, create namespace if it doesn't exist
           kubectl create namespace movie || true
