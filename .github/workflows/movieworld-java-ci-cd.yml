@@ -229,7 +229,7 @@ jobs:
           kubectl apply -f mysql-service.yaml -n movie --validate=false
           kubectl apply -f mysql-deployment.yaml -n movie --validate=false
           
-          # Wait for MySQL to be ready
+          # Wait for MySQL to be ready for resources
           echo "Waiting for MySQL to be ready..."
           sleep 45
           
