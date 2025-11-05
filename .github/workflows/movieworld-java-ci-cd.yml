@@ -219,6 +219,8 @@ jobs:
 
           # First, create namespace if it doesn't exist
           kubectl create namespace movie || true
+          kubectl label namespace movie istio.io/dataplane-mode=ambient
+          kubectl get ns movie --show-labels
 
           
           # Apply the StorageClass and PVC first
