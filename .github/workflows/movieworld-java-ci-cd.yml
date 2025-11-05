@@ -214,6 +214,7 @@ jobs:
           kubectl delete -f mysql-service.yaml --ignore-not-found
           kubectl delete -f service-monitor.yaml --ignore-not-found
           kubectl delete namespace movie --ignore-not-found
+          
 
           sleep 120
 
