@@ -236,7 +236,7 @@ jobs:
           echo "Waiting for MySQL to be ready..."
           sleep 45
           
-          # Apply application resources
+          # Apply application resources manifests
           kubectl apply -f configmap.yaml -n movie --validate=false
           kubectl apply -f secret.yaml -n movie --validate=false
           kubectl apply -f deployment.yaml -n movie --validate=false
