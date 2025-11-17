@@ -7,7 +7,7 @@ metadata:
     app: movieworld
     version: v1
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: movieworld
@@ -66,13 +66,13 @@ spec:
               name: movieworld-mysql-secret
               key: mysql-password
         # Using DB_USER and DB_PASSWORD from above
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
+        # resources:
+        #   requests:
+        #     memory: "512Mi"
+        #     cpu: "250m"
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "500m"
         readinessProbe:
           httpGet:
             path: /actuator/health

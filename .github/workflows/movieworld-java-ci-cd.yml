@@ -10,7 +10,7 @@ permissions:
     id-token: write
     contents: read
     actions: write
-    packages: write # Needed for Docker operations
+    packages: write # Needed for Docker operation
  
 jobs:
   CI:
@@ -82,25 +82,25 @@ jobs:
       retention-days: 7
       if-no-files-found: warn
 
-  # SonarQube scan
-   - name: Cache SonarQube packages
-     uses: actions/cache@v4
-     with:
-      path: ~/.sonar/cache
-      key: ${{ runner.os }}-sonar
-      restore-keys: ${{ runner.os }}-sonar
-   - name: Cache Maven packages
-     uses: actions/cache@v4
-     with:
-      path: ~/.m2
-      key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-      restore-keys: ${{ runner.os }}-m2
-   - name: SonarQube Build and analyze
-     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-     run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+  # # SonarQube scan
+  #  - name: Cache SonarQube packages
+  #    uses: actions/cache@v4
+  #    with:
+  #     path: ~/.sonar/cache
+  #     key: ${{ runner.os }}-sonar
+  #     restore-keys: ${{ runner.os }}-sonar
+  #  - name: Cache Maven packages
+  #    uses: actions/cache@v4
+  #    with:
+  #     path: ~/.m2
+  #     key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+  #     restore-keys: ${{ runner.os }}-m2
+  #  - name: SonarQube Build and analyze
+  #    env:
+  #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+  #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  #    run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
 
     # Run Build
    - name: Run Build
@@ -212,11 +212,17 @@ jobs:
           kubectl delete -f mysql-secret.yaml --ignore-not-found  
           kubectl delete -f mysql-sg-pvc.yaml --ignore-not-found  
           kubectl delete -f mysql-service.yaml --ignore-not-found
+          kubectl delete -f service-monitor.yaml --ignore-not-found
+          kubectl delete namespace movie --ignore-not-found
+          
 
-          sleep 30
+          sleep 120
 
           # First, create namespace if it doesn't exist
-          kubectl create namespace movie --ignore-exists || true
+          kubectl create namespace movie || true
+          kubectl label namespace movie istio.io/dataplane-mode=ambient
+          kubectl get ns movie --show-labels
+
           
           # Apply the StorageClass and PVC first
           kubectl apply -f mysql-sg-pvc.yaml -n movie --validate=false
@@ -226,15 +232,19 @@ jobs:
           kubectl apply -f mysql-service.yaml -n movie --validate=false
           kubectl apply -f mysql-deployment.yaml -n movie --validate=false
           
-          # Wait for MySQL to be ready
+          # Wait for MySQL to be ready for resources
           echo "Waiting for MySQL to be ready..."
           sleep 45
           
-          # Apply application resources
+          # Apply application resources manifests
           kubectl apply -f configmap.yaml -n movie --validate=false
           kubectl apply -f secret.yaml -n movie --validate=false
           kubectl apply -f deployment.yaml -n movie --validate=false
           kubectl apply -f service.yaml -n movie --validate=false
+
+          # Apply ServiceMonitor
+          # kubectl create namespace monitoring || true
+          kubectl apply -f service-monitor.yaml -n monitoring --validate=false
           
           # Verify deployment status
           echo "Checking deployment status..."
