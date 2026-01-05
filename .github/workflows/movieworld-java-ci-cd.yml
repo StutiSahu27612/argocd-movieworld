@@ -7,15 +7,15 @@ on:
     branches: ["feature-app"]
 
 permissions:
-    id-token: write
+    id-token: write 
     contents: read
     actions: write
     packages: write # Needed for Docker operation
  
 jobs:
   CI:
-   name: Build and Deploy to AWS
-   runs-on: self-hosted
+   name: Build and Deploy to GCP
+   runs-on: ubuntu-22.04
  
   # Checkout code from the repository
    steps:
