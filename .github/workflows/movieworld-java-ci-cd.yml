@@ -117,19 +117,78 @@ jobs:
  
  
   # Set up Docker Buildx
-   - name: Set up Docker Buildx
-     uses: docker/setup-buildx-action@v3
+  #  - name: Set up Docker Buildx
+  #    uses: docker/setup-buildx-action@v3
 
-  # Build Docker image locally (without pushing)
-   - name: Build Docker image
-     id: build-image
-     uses: docker/build-push-action@v5
+  # # Build Docker image locally (without pushing)
+  #  - name: Build Docker image
+  #    id: build-image
+  #    uses: docker/build-push-action@v5
+  #    with:
+  #      context: .
+  #      load: true # Export to Docker engine instead of pushing
+  #      tags: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
+  #      cache-from: type=gha
+  #      cache-to: type=gha,mode=max
+
+
+#***************************Adding code for Setting Up WIF 
+
+   - name: Authenticate to Google Cloud
+     id: auth
+     uses: google-github-actions/auth@v2
      with:
-       context: .
-       load: true # Export to Docker engine instead of pushing
-       tags: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
-       cache-from: type=gha
-       cache-to: type=gha,mode=max
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+ 
+      # Set up Cloud SDK
+   - name: Set up Cloud SDK
+     uses: google-github-actions/setup-gcloud@v2
+
+   - name: List GCP storage
+     run: |
+      gcloud storage ls
+
+
+
+    #     # Create Docker Image with Tag
+    #   - name: Build & Tag Docker Image
+    #     id: build_image
+    #     # SHORT_SHA=${GITHUB_SHA::8}  # Shorten the commit SHA to 8 characters
+    #     # IMAGE_TAG=${{ github.repository }}:${SHORT_SHA}  # Tag based on repository and short SHA
+    #     # echo "::set-output name=IMAGE_TAG::${IMAGE_TAG}"  # Set the IMAGE_TAG as output
+    #     # docker build -t ${IMAGE_TAG} .
+    #     run: |
+    #      DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+    #      echo "::set-output name=DOCKER_TAG::${DOCKER_TAG}"  # Set the DOCKER_TAG as output
+    #      docker build --tag ${DOCKER_TAG} .
+        
+
+    # # List Images
+    #   - name: List Images
+    #     run: |
+    #      docker images 
+
+    # # Scan Docker Image
+    #   - name: Scan Docker Image
+    #     uses: aquasecurity/trivy-action@0.20.0
+    #     with:
+    #      image-ref: ${{ steps.build_image.outputs.DOCKER_TAG }}  # Reference the IMAGE_TAG from the previous step
+    #      scan-type: image
+    #      scanners: vuln,secret
+    #      ignore_unfixed: 'false'  # Whether to ignore unfixed vulnerabilities
+    #      severity: 'HIGH,CRITICAL,MEDIUM,LOW'  # Minimum severity level to report (e.g., 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL')
+    #      exit-code: 0
+    #      format: table
+
+    # # Push Docker Image to GCR
+    #   - name: Push Docker Image to GCR
+    #     run: |
+    #      gcloud auth configure-docker us-central1-docker.pkg.dev
+    #      docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
+
+
+
 
   # Scan Docker image with Trivy
    - name: Run Trivy vulnerability scanner
