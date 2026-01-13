@@ -1,14 +1,13 @@
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: mysql-ebs
-provisioner: ebs.csi.aws.com
-volumeBindingMode: Immediate
+  name: mysql-storage
+provisioner: kubernetes.io/no-provisioner
 reclaimPolicy: Delete
-parameters:
-  type: gp3
-  fsType: ext4
-  encrypted: "true"
+# parameters:
+#   type: gp3
+#   fsType: ext4
+#   encrypted: "true"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
