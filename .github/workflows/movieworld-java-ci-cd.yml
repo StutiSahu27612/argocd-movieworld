@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: ["feature-app"]
 
-permissions:
+permissions: 
     id-token: write 
     contents: read  
     actions: write
