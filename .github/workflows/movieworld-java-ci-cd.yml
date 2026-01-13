@@ -16,7 +16,14 @@ jobs:
   CI:
    name: Build and Deploy to GCP
    runs-on: ubuntu-22.04
- 
+
+   env:  
+      PROJECT_ID: 'project-stuti-477509' # TODO: update to your Google Cloud project ID
+      REGION: 'us-central1' # TODO: update to your region
+      SERVICE: 'argocd-poc-repo' # TODO: update to your service name
+      IMAGE_NAME: 'movieworld-app-image'  # DOCKER Image Name   
+
+      
   # Checkout code from the repository 
    steps:
    - name: Checkout Code
@@ -150,42 +157,41 @@ jobs:
       gcloud storage ls
 
 
-
-    #     # Create Docker Image with Tag
-    #   - name: Build & Tag Docker Image
-    #     id: build_image
-    #     # SHORT_SHA=${GITHUB_SHA::8}  # Shorten the commit SHA to 8 characters
-    #     # IMAGE_TAG=${{ github.repository }}:${SHORT_SHA}  # Tag based on repository and short SHA
-    #     # echo "::set-output name=IMAGE_TAG::${IMAGE_TAG}"  # Set the IMAGE_TAG as output
-    #     # docker build -t ${IMAGE_TAG} .
-    #     run: |
-    #      DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-    #      echo "::set-output name=DOCKER_TAG::${DOCKER_TAG}"  # Set the DOCKER_TAG as output
-    #      docker build --tag ${DOCKER_TAG} .
+     # Create Docker Image with Tag
+   - name: Build & Tag Docker Image
+     id: build_image
+        # SHORT_SHA=${GITHUB_SHA::8}  # Shorten the commit SHA to 8 characters
+        # IMAGE_TAG=${{ github.repository }}:${SHORT_SHA}  # Tag based on repository and short SHA
+        # echo "::set-output name=IMAGE_TAG::${IMAGE_TAG}"  # Set the IMAGE_TAG as output
+        # docker build -t ${IMAGE_TAG} .
+     run: |
+        DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+         echo "::set-output name=DOCKER_TAG::${DOCKER_TAG}"  # Set the DOCKER_TAG as output
+         docker build --tag ${DOCKER_TAG} .
         
 
-    # # List Images
-    #   - name: List Images
-    #     run: |
-    #      docker images 
+    # List Images
+   - name: List Images
+     run: |
+         docker images 
 
-    # # Scan Docker Image
-    #   - name: Scan Docker Image
-    #     uses: aquasecurity/trivy-action@0.20.0
-    #     with:
-    #      image-ref: ${{ steps.build_image.outputs.DOCKER_TAG }}  # Reference the IMAGE_TAG from the previous step
-    #      scan-type: image
-    #      scanners: vuln,secret
-    #      ignore_unfixed: 'false'  # Whether to ignore unfixed vulnerabilities
-    #      severity: 'HIGH,CRITICAL,MEDIUM,LOW'  # Minimum severity level to report (e.g., 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL')
-    #      exit-code: 0
-    #      format: table
+    # Scan Docker Image
+   - name: Scan Docker Image
+     uses: aquasecurity/trivy-action@0.20.0
+     with:
+         image-ref: ${{ steps.build_image.outputs.DOCKER_TAG }}  # Reference the IMAGE_TAG from the previous step
+         scan-type: image
+         scanners: vuln,secret
+         ignore_unfixed: 'false'  # Whether to ignore unfixed vulnerabilities
+         severity: 'HIGH,CRITICAL,MEDIUM,LOW'  # Minimum severity level to report (e.g., 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL')
+         exit-code: 0
+         format: table
 
-    # # Push Docker Image to GCR
-    #   - name: Push Docker Image to GCR
-    #     run: |
-    #      gcloud auth configure-docker us-central1-docker.pkg.dev
-    #      docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
+    # Push Docker Image to GCR
+   - name: Push Docker Image to GCR
+     run: |
+         gcloud auth configure-docker us-central1-docker.pkg.dev
+         docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
 
 
 
