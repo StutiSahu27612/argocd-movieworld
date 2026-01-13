@@ -17,7 +17,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: mysql-ebs
+  storageClassName: mysql-storage
   resources:
     requests:
       storage: 1Gi
