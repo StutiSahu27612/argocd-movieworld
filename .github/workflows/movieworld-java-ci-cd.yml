@@ -196,56 +196,6 @@ jobs:
 
 
 
-  # Scan Docker image with Trivy
-   - name: Run Trivy vulnerability scanner
-     uses: aquasecurity/trivy-action@master
-     with:
-       image-ref: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
-       format: 'table'
-       output: 'trivy-image-results.txt'
-       severity: 'CRITICAL,HIGH'
-       exit-code: '0'  # Don't fail the build, just report
-
-  # Upload Trivy scan results
-   - name: Upload Trivy image scan results
-     uses: actions/upload-artifact@v4
-     with:
-       name: trivy-image-scan-results
-       path: trivy-image-results.txt
-       retention-days: 7
-
-   # Authenticate AWS with Docker to interact with an Amazon ECR registry
-   - name: Login to Amazon ECR
-     run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-  # # Login to Amazon ECR
-  #  - name: Login to Amazon ECR
-  #    uses: aws-actions/amazon-ecr-login@v2
-  #    id: login-ecr
-  #    with:
-  #      role-session-name: ${{ secrets.EKS_CLUSTER_NAME }}-session
-  #      aws-region: ${{ secrets.AWS_REGION }}
-
-  # Push Docker image to ECR
-   - name: Tag and push Docker image to ECR
-     id: push-image
-     uses: docker/build-push-action@v5
-     with:
-       context: .
-       push: true
-       tags: |
-         ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
-       cache-from: type=gha
-       cache-to: type=gha,mode=max
-       
-
-  # Add CI Summary
-   - name: Add CI Summary
-     run: |
-       echo "### CI Summary ✅" >> $GITHUB_STEP_SUMMARY
-       echo "- Docker image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-       echo "- Test coverage, Trivy FS & Image scan reports uploaded" >> $GITHUB_STEP_SUMMARY
-
   CD:
     name: Deploy to Kubernetes
     needs: CI
@@ -316,10 +266,4 @@ jobs:
           kubectl get pods -n movie
           
 
-      # Add CD Summary
-      - name: Add CD Summary
-        run: |
-          echo "### CD Summary ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployed image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployment 'movieworld' rollout status checked" >> $GITHUB_STEP_SUMMARY
-     
+
