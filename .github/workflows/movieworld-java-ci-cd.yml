@@ -184,7 +184,7 @@ jobs:
      - name: Set up Cloud SDK
        uses: google-github-actions/setup-gcloud@v2
        with:
-        project_id: ${{ secrets.PROJECT_ID }}
+        project_id: ${{ secrets.GKE_PROJECT_ID }}
         install_components: kubectl
 
     # Get GKE credentials so kubectl commands work
