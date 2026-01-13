@@ -207,17 +207,17 @@ jobs:
        run: |
          kubectl create namespace movie || true
          kubectl get ns movie
-         kubectl apply -f mysql-sg-pvc.yaml -n movie --validate=false
-         kubectl apply -f mysql-secret.yaml -n movie --validate=false
-         kubectl apply -f mysql-service.yaml -n movie --validate=false
-         kubectl apply -f mysql-deployment.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/mysql-sg-pvc.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/mysql-secret.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/mysql-service.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/mysql-deployment.yaml -n movie --validate=false
 
          echo "Waiting for MySQL to be ready..."
          sleep 45
 
-         kubectl apply -f configmap.yaml -n movie --validate=false
-         kubectl apply -f secret.yaml -n movie --validate=false
-         kubectl apply -f deployment.yaml -n movie --validate=false
-         kubectl apply -f service.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/configmap.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/secret.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/deployment.yaml -n movie --validate=false
+         kubectl apply -f kubernetes/manifests/service.yaml -n movie --validate=false
 
          kubectl get pods -n movie
