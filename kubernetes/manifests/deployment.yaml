@@ -23,12 +23,12 @@ spec:
         image: IMAGE
         imagePullPolicy: Always
         ports:
-        - containerPort: 9091
+        - containerPort: 9090
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
         - name: SERVER_PORT
-          value: "9091"
+          value: "9090"
         - name: MOVIE_REVIEW_SERVICE_URL
           valueFrom:
             configMapKeyRef:
@@ -55,14 +55,14 @@ spec:
         readinessProbe:
           httpGet:
             path: /actuator/health
-            port: 9091
+            port: 9090
           initialDelaySeconds: 60
           periodSeconds: 10
           failureThreshold: 5
         livenessProbe:
           httpGet:
             path: /actuator/health
-            port: 9091
+            port: 9090
           initialDelaySeconds: 60
           periodSeconds: 15
         volumeMounts:
