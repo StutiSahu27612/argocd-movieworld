@@ -1,6 +1,6 @@
 name: MovieWorld CI/CD Pipeline
   
-on:
+on: 
   push:
     branches: ["feature-app"]
   pull_request:
