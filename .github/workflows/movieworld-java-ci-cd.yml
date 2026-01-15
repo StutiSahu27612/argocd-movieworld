@@ -3,9 +3,9 @@ name: MovieWorld CI/CD Pipeline
 on: 
   push:
     branches: ["feature-app"] 
-  pull_request:
+  pull_request: 
     branches: ["feature-app"]
- 
+  
 permissions: 
     id-token: write 
     contents: read  
