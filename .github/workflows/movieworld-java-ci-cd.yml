@@ -173,7 +173,7 @@ jobs:
 
    - name: Update deployment manifest
      run: |
-       IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${IMAGE_TAG}"
+       IMAGE="${{ secrets.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
        cat kubernetes/manifests/deployment.yaml
 
