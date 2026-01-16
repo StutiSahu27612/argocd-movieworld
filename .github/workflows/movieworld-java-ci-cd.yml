@@ -163,61 +163,61 @@ jobs:
          gcloud auth configure-docker us-central1-docker.pkg.dev
          docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
 
-  CD:
-   name: Deploy to Kubernetes (GKE)
-   needs: CI
-   runs-on: ubuntu-latest
+  # CD:
+  #  name: Deploy to Kubernetes (GKE)
+  #  needs: CI
+  #  runs-on: ubuntu-latest
 
-   steps:
-     - name: Checkout Code
-       uses: actions/checkout@v3
+  #  steps:
+  #    - name: Checkout Code
+  #      uses: actions/checkout@v3
 
-    # Authenticate to Google Cloud using Workload Identity or Service Account
-     - id: auth
-       name: Authenticate to GCP
-       uses: google-github-actions/auth@v2
-       with:
-         workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-         service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+  #   # Authenticate to Google Cloud using Workload Identity or Service Account
+  #    - id: auth
+  #      name: Authenticate to GCP
+  #      uses: google-github-actions/auth@v2
+  #      with:
+  #        workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+  #        service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
 
-    # Set up gcloud and install kubectl
-     - name: Set up Cloud SDK
-       uses: google-github-actions/setup-gcloud@v2
-       with:
-        project_id: ${{ secrets.GKE_PROJECT_ID }}
-        install_components: kubectl
+  #   # Set up gcloud and install kubectl
+  #    - name: Set up Cloud SDK
+  #      uses: google-github-actions/setup-gcloud@v2
+  #      with:
+  #       project_id: ${{ secrets.GKE_PROJECT_ID }}
+  #       install_components: kubectl
 
-    # Get GKE credentials so kubectl commands work
-     - name: Get GKE credentials
-       uses: google-github-actions/get-gke-credentials@v2
-       with:
-        cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
-        location: ${{ secrets.GKE_CLUSTER_REGION }}
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
+  #   # Get GKE credentials so kubectl commands work
+  #    - name: Get GKE credentials
+  #      uses: google-github-actions/get-gke-credentials@v2
+  #      with:
+  #       cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+  #       location: ${{ secrets.GKE_CLUSTER_REGION }}
+  #       project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    # Update deployment.yaml to use the new image from Artifact Registry
-     - name: Update Deployment YAML with new image
-       run: |
-        IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
-        echo "New image: $IMAGE"
-        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+  #   # Update deployment.yaml to use the new image from Artifact Registry
+  #    - name: Update Deployment YAML with new image
+  #      run: |
+  #       IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+  #       echo "New image: $IMAGE"
+  #       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
 
-    # Apply namespace + cleanup only if needed
-     - name: Ensure namespace exists
-       run: |
-         kubectl create namespace movie || true
-         kubectl get ns movie
-         kubectl apply -f kubernetes/manifests/mysql-sg-pvc.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/mysql-secret.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/mysql-service.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/mysql-deployment.yaml -n movie --validate=false
+  #   # Apply namespace + cleanup only if needed
+  #    - name: Ensure namespace exists
+  #      run: |
+  #        kubectl create namespace movie || true
+  #        kubectl get ns movie
+  #        kubectl apply -f kubernetes/manifests/mysql-sg-pvc.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-secret.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-service.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-deployment.yaml -n movie --validate=false
 
-         echo "Waiting for MySQL to be ready..."
-         sleep 45
+  #        echo "Waiting for MySQL to be ready..."
+  #        sleep 45
 
-         kubectl apply -f kubernetes/manifests/configmap.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/secret.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/deployment.yaml -n movie --validate=false
-         kubectl apply -f kubernetes/manifests/service.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/configmap.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/secret.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/deployment.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/service.yaml -n movie --validate=false
 
-         kubectl get pods -n movie
+  #        kubectl get pods -n movie
