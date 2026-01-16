@@ -8,9 +8,9 @@ on:
   
 permissions:  
     id-token: write 
-    contents: read  
     actions: write
     packages: write # Needed for Docker operation
+    contents: write
   
 jobs:
   CI:
