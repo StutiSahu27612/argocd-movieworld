@@ -1,0 +1,44 @@
+name: Update Deployment Manifest
+
+# Allows manual trigger from the Actions tab
+on:
+  workflow_dispatch:  # manual trigger
+    # You *could* add inputs here if needed
+    # inputs:
+    #   environment:
+    #     description: 'Environment (dev/prod)'
+    #     required: true
+    #     default: 'dev'
+
+permissions:
+  contents: write # Needed to push manifest changes
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set image tag
+      id: set-image-tag
+      run: |
+        SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+        IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
+        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Update deployment manifest
+      run: |
+        IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/prod/deployment.yaml
+        cat kubernetes/manifests/deployment.yaml
+
+    - name: Commit and push manifest
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add kubernetes/manifests/deployment.yaml
+        git commit -m "Update movie deployment to $IMAGE_TAG"
+        git push
