@@ -17,38 +17,24 @@ spec:
       labels:
         app: movieworld
         version: v1
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/path: "/actuator/prometheus"
-        prometheus.io/port: "9091"
-        sidecar.istio.io/inject: "true"
     spec:
       containers:
       - name: movieworld
-        image: IMAGE
+        image: us-central1-docker.pkg.dev/project-stuti-477509/argocd-poc-repo/movieworld-app-image:d22c68474772f0103a7f115f56acd4c17f6e93c5
         imagePullPolicy: Always
         ports:
-        - containerPort: 9091
+        - containerPort: 9090
         env:
         - name: SPRING_PROFILES_ACTIVE
           value: "prod"
         - name: SERVER_PORT
-          value: "9091"
+          value: "9090"
         - name: MOVIE_REVIEW_SERVICE_URL
           valueFrom:
             configMapKeyRef:
               name: movieworld-config
               key: moviereview-service-url
-        - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://otel-collector:4317"
-        - name: OTEL_RESOURCE_ATTRIBUTES
-          value: "service.name=movieworld,service.version=1.0.0,deployment.environment=production"
-        - name: OTEL_METRICS_EXPORTER
-          value: "otlp"
-        - name: OTEL_LOGS_EXPORTER
-          value: "otlp"
-        - name: OTEL_PROPAGATORS
-          value: "tracecontext,baggage,b3"
+  
         - name: DB_HOST
           value: "movieworld-mysql.movie.svc.cluster.local"
         - name: DB_PORT
@@ -65,25 +51,18 @@ spec:
             secretKeyRef:
               name: movieworld-mysql-secret
               key: mysql-password
-        # Using DB_USER and DB_PASSWORD from above
-        # resources:
-        #   requests:
-        #     memory: "512Mi"
-        #     cpu: "250m"
-        #   limits:
-        #     memory: "1Gi"
-        #     cpu: "500m"
+        
         readinessProbe:
           httpGet:
             path: /actuator/health
-            port: 9091
+            port: 9090
           initialDelaySeconds: 60
           periodSeconds: 10
           failureThreshold: 5
         livenessProbe:
           httpGet:
             path: /actuator/health
-            port: 9091
+            port: 9090
           initialDelaySeconds: 60
           periodSeconds: 15
         volumeMounts:

@@ -1,23 +1,30 @@
 name: MovieWorld CI/CD Pipeline
- 
-on:
+  
+on: 
   push:
+    branches: ["feature-app"]  
+  pull_request: 
     branches: ["feature-app"]
-  pull_request:
-    branches: ["feature-app"]
-
-permissions:
-    id-token: write
-    contents: read
+  
+permissions:  
+    id-token: write 
     actions: write
     packages: write # Needed for Docker operation
- 
+    contents: write
+  
 jobs:
   CI:
-   name: Build and Deploy to AWS
-   runs-on: self-hosted
- 
-  # Checkout code from the repository
+   name: Build and Deploy to GCP
+   runs-on: ubuntu-22.04
+
+   env:  
+      PROJECT_ID: 'project-stuti-477509' # TODO: update to your Google Cloud project ID
+      REGION: 'us-central1' # TODO: update to your region
+      SERVICE: 'argocd-poc-repo' # TODO: update to your service name
+      IMAGE_NAME: 'movieworld-app-image'  # DOCKER Image Name   
+
+      
+  # Checkout code from the repository 
    steps:
    - name: Checkout Code
      uses: actions/checkout@v3
@@ -106,155 +113,133 @@ jobs:
    - name: Run Build
      run: mvn clean package
 
+#***************************Adding code for Setting Up WIF 
 
-  # # Configure AWS credentials for ECR and EKS
-  #  - name: Configure AWS credentials
-  #    uses: aws-actions/configure-aws-credentials@v3
-  #    with:
-  #      role-to-assume: ${{ secrets.AWS_IAM_ARN }}
-  #      role-session-name: movieworld-session
-  #      aws-region: ${{ secrets.AWS_REGION }}
+   - name: Authenticate to Google Cloud
+     id: auth
+     uses: google-github-actions/auth@v2
+     with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
  
- 
-  # Set up Docker Buildx
-   - name: Set up Docker Buildx
-     uses: docker/setup-buildx-action@v3
+      # Set up Cloud SDK
+   - name: Set up Cloud SDK
+     uses: google-github-actions/setup-gcloud@v2
 
-  # Build Docker image locally (without pushing)
-   - name: Build Docker image
-     id: build-image
-     uses: docker/build-push-action@v5
-     with:
-       context: .
-       load: true # Export to Docker engine instead of pushing
-       tags: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
-       cache-from: type=gha
-       cache-to: type=gha,mode=max
-
-  # Scan Docker image with Trivy
-   - name: Run Trivy vulnerability scanner
-     uses: aquasecurity/trivy-action@master
-     with:
-       image-ref: ${{ secrets.MOVIEWORLD_IMAGE_NAME }}:${{ github.sha }}
-       format: 'table'
-       output: 'trivy-image-results.txt'
-       severity: 'CRITICAL,HIGH'
-       exit-code: '0'  # Don't fail the build, just report
-
-  # Upload Trivy scan results
-   - name: Upload Trivy image scan results
-     uses: actions/upload-artifact@v4
-     with:
-       name: trivy-image-scan-results
-       path: trivy-image-results.txt
-       retention-days: 7
-
-   # Authenticate AWS with Docker to interact with an Amazon ECR registry
-   - name: Login to Amazon ECR
-     run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-  # # Login to Amazon ECR
-  #  - name: Login to Amazon ECR
-  #    uses: aws-actions/amazon-ecr-login@v2
-  #    id: login-ecr
-  #    with:
-  #      role-session-name: ${{ secrets.EKS_CLUSTER_NAME }}-session
-  #      aws-region: ${{ secrets.AWS_REGION }}
-
-  # Push Docker image to ECR
-   - name: Tag and push Docker image to ECR
-     id: push-image
-     uses: docker/build-push-action@v5
-     with:
-       context: .
-       push: true
-       tags: |
-         ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}
-       cache-from: type=gha
-       cache-to: type=gha,mode=max
-       
-
-  # Add CI Summary
-   - name: Add CI Summary
+   - name: List GCP storage
      run: |
-       echo "### CI Summary ✅" >> $GITHUB_STEP_SUMMARY
-       echo "- Docker image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-       echo "- Test coverage, Trivy FS & Image scan reports uploaded" >> $GITHUB_STEP_SUMMARY
-
-  CD:
-    name: Deploy to Kubernetes
-    needs: CI
-    runs-on: self-hosted
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      # Authenticate AWS with Docker to interact with an Amazon ECR registry
-      - name: Login to Amazon ECR
-        run: aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-      # Update Deployment YAML with the new image and Deploy ECR image to EKS 
-      - name: Update Deployment YAML with New Image
-        run: |
-          aws eks update-kubeconfig --region ${{ secrets.AWS_REGION }} --name ${{ secrets.EKS_CLUSTER_NAME }}
-          # Use the full ECR image URL for the deployment
-          IMAGE="${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}"
-          sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
-          cd kubernetes/manifests
+      gcloud storage ls
 
 
-          # Delete existing resources
-          kubectl delete -f configmap.yaml --ignore-not-found 
-          kubectl delete -f secret.yaml --ignore-not-found 
-          kubectl delete -f deployment.yaml --ignore-not-found
-          kubectl delete -f service.yaml --ignore-not-found 
-          kubectl delete -f mysql-deployment.yaml --ignore-not-found  
-          kubectl delete -f mysql-secret.yaml --ignore-not-found  
-          kubectl delete -f mysql-sg-pvc.yaml --ignore-not-found  
-          kubectl delete -f mysql-service.yaml --ignore-not-found
-          kubectl delete -f service-monitor.yaml --ignore-not-found
-          kubectl delete namespace movie --ignore-not-found
-          
+     # Create Docker Image with Tag
+   - name: Build & Tag Docker Image
+     id: build_image
+     run: |
+        DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+         echo "::set-output name=DOCKER_TAG::${DOCKER_TAG}"  # Set the DOCKER_TAG as output
+         docker build --tag ${DOCKER_TAG} .
+        
 
-          sleep 120
+    # List Images
+   - name: List Images
+     run: |
+         docker images 
 
-          # First, create namespace if it doesn't exist
-          kubectl create namespace movie || true
-          kubectl label namespace movie istio.io/dataplane-mode=ambient
-          kubectl get ns movie --show-labels
+    # Scan Docker Image
+   - name: Scan Docker Image
+     uses: aquasecurity/trivy-action@0.20.0
+     with:
+         image-ref: ${{ steps.build_image.outputs.DOCKER_TAG }}  # Reference the IMAGE_TAG from the previous step
+         scan-type: image
+         scanners: vuln,secret
+         ignore_unfixed: 'false'  # Whether to ignore unfixed vulnerabilities
+         severity: 'HIGH,CRITICAL,MEDIUM,LOW'  # Minimum severity level to report (e.g., 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL')
+         exit-code: 0
+         format: table
 
-          
-          # Apply the StorageClass and PVC first
-          kubectl apply -f mysql-sg-pvc.yaml -n movie --validate=false
-          
-          # Apply MySQL resources
-          kubectl apply -f mysql-secret.yaml -n movie --validate=false
-          kubectl apply -f mysql-service.yaml -n movie --validate=false
-          kubectl apply -f mysql-deployment.yaml -n movie --validate=false
-          
-          # Wait for MySQL to be ready for resources
-          echo "Waiting for MySQL to be ready..."
-          sleep 45
-          
-          # Apply application resources manifests
-          kubectl apply -f configmap.yaml -n movie --validate=false
-          kubectl apply -f secret.yaml -n movie --validate=false
-          kubectl apply -f deployment.yaml -n movie --validate=false
-          kubectl apply -f service.yaml -n movie --validate=false
+    # Push Docker Image to GCR
+   - name: Push Docker Image to GCR
+     run: |
+         gcloud auth configure-docker us-central1-docker.pkg.dev
+         docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
 
-          # Apply ServiceMonitor
-          # kubectl create namespace monitoring || true
-          kubectl apply -f service-monitor.yaml -n monitoring --validate=false
-          
-          # Verify deployment status
-          echo "Checking deployment status..."
-          kubectl get pods -n movie
-          
+   - name: Set image tag
+     id: set-image-tag
+     run: |
+      SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+      REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+      IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
+      echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-      # Add CD Summary
-      - name: Add CD Summary
-        run: |
-          echo "### CD Summary ✅" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployed image: ${{ secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPO_NAME_MOVIEWORLD }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Deployment 'movieworld' rollout status checked" >> $GITHUB_STEP_SUMMARY
-     
+   - name: Update deployment manifest
+     run: |
+       IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+       cat kubernetes/manifests/deployment.yaml
+
+   - name: Commit and push manifest
+     run: |
+       git config user.name "github-actions"
+       git config user.email "github-actions@github.com"
+       git add kubernetes/manifests/deployment.yaml
+       git commit -m "Update movie deployment to $IMAGE_TAG"
+       git push
+
+  # CD:
+  #  name: Deploy to Kubernetes (GKE)
+  #  needs: CI
+  #  runs-on: ubuntu-latest
+
+  #  steps:
+  #    - name: Checkout Code
+  #      uses: actions/checkout@v3
+
+  #   # Authenticate to Google Cloud using Workload Identity or Service Account
+  #    - id: auth
+  #      name: Authenticate to GCP
+  #      uses: google-github-actions/auth@v2
+  #      with:
+  #        workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+  #        service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+
+  #   # Set up gcloud and install kubectl
+  #    - name: Set up Cloud SDK
+  #      uses: google-github-actions/setup-gcloud@v2
+  #      with:
+  #       project_id: ${{ secrets.GKE_PROJECT_ID }}
+  #       install_components: kubectl
+
+  #   # Get GKE credentials so kubectl commands work
+  #    - name: Get GKE credentials
+  #      uses: google-github-actions/get-gke-credentials@v2
+  #      with:
+  #       cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+  #       location: ${{ secrets.GKE_CLUSTER_REGION }}
+  #       project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+  #   # Update deployment.yaml to use the new image from Artifact Registry
+  #    - name: Update Deployment YAML with new image
+  #      run: |
+  #       IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+  #       echo "New image: $IMAGE"
+  #       sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+
+  #   # Apply namespace + cleanup only if needed
+  #    - name: Ensure namespace exists
+  #      run: |
+  #        kubectl create namespace movie || true
+  #        kubectl get ns movie
+  #        kubectl apply -f kubernetes/manifests/mysql-sg-pvc.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-secret.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-service.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/mysql-deployment.yaml -n movie --validate=false
+
+  #        echo "Waiting for MySQL to be ready..."
+  #        sleep 45
+
+  #        kubectl apply -f kubernetes/manifests/configmap.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/secret.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/deployment.yaml -n movie --validate=false
+  #        kubectl apply -f kubernetes/manifests/service.yaml -n movie --validate=false
+
+  #        kubectl get pods -n movie

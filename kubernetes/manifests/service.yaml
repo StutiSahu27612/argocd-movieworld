@@ -6,15 +6,12 @@ metadata:
   labels:
     app: movieworld
     service: movieworld
-  annotations:
-    prometheus.io/scrape: "true"
-    prometheus.io/path: "/actuator/prometheus"
-    prometheus.io/port: "9091"
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   ports:
-  - port: 9091
-    targetPort: 9091
-    name: http
+  - name: http
+    protocol: TCP
+    port: 9090
+    targetport: 9090
   selector:
     app: movieworld
