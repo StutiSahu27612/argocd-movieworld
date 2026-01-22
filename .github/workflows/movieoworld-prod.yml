@@ -10,8 +10,11 @@ on:
     #     required: true
     #     default: 'dev'
 
-permissions:
-  contents: write # Needed to push manifest changes
+permissions:  
+    id-token: write 
+    actions: write
+    packages: write # Needed for Docker operation
+    contents: write
 
 jobs:
   update-manifest: 
