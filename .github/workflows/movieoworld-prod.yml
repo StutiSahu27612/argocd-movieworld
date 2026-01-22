@@ -14,7 +14,7 @@ permissions:
   contents: write # Needed to push manifest changes
 
 jobs:
-  update-manifest:
+  update-manifest: 
     runs-on: ubuntu-latest
 
     steps:
