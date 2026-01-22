@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: movieworld
+  namespace: movie
+  labels:
+    app: movieworld
+    service: movieworld
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    protocol: TCP
+    port: 9090
+    targetport: 9090
+  selector:
+    app: movieworld
+
