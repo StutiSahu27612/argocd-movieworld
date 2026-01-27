@@ -35,24 +35,36 @@ jobs:
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
-
-    - name: List GCP storage
+      
+    - name: Configure docker for GAR
       run: |
-       gcloud storage ls
+          gcloud auth configure-docker us-central1-docker.pkg.dev
 
-    - name: Set image tag
-      id: set-image-tag
+    - name: Pull already built image
       run: |
-        SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
-        REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-        IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
-        echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+          docker pull $IMAGE
+          echo "Using image: $IMAGE"
+
+    # - name: Deploy to Kubernetes
+    #   run: |
+    #     IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+    #     sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/deployment.yaml
+    #     kubectl apply -f kubernetes/manifests/deployment.yaml
+
+    # - name: Set image tag
+    #   id: set-image-tag
+    #   run: |
+    #     SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+    #     REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+    #     IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
+    #     echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
     - name: Update deployment manifest
       run: |
         IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
         sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/prod/deployment.yaml
-        cat kubernetes/manifests/deployment.yaml
+        cat kubernetes/manifests/prod/deployment.yaml
 
     - name: Commit and push manifest
       run: |
@@ -61,6 +73,8 @@ jobs:
         git add kubernetes/manifests/prod/deployment.yaml
         git commit -m "Update movie deployment to $IMAGE_TAG"
         git push
+
+
 
 
 
