@@ -55,17 +55,35 @@ jobs:
       run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
 
+    - name: Download image tag
+      uses: actions/download-artifact@v3
+      with:
+          name: image-tag
 
-    -  name: Get image SHA
-       run: |
-          IMAGE_SHA="${{ github.event.workflow_run.outputs.image_sha }}"
-          echo "IMAGE_SHA=$IMAGE_SHA"
-  
+    - name: Read image tag
+      id: read-tag
+      run: |
+          IMAGE_TAG=$(cat image-tag.txt)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+    - name: Show debug
+      run: |
+        echo "Pulling image: $IMAGE_TAG"
+
     - name: Pull already built image
       run: |
-          IMAGE="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:$IMAGE_SHA"
-          docker pull $IMAGE
-          echo "Using image: $IMAGE"
+          docker pull "$IMAGE_TAG"
+
+    # -  name: Get image SHA
+    #    run: |
+    #       IMAGE_SHA="${{ github.event.workflow_run.outputs.image_sha }}"
+    #       echo "IMAGE_SHA=$IMAGE_SHA"
+  
+    # - name: Pull already built image
+    #   run: |
+    #       IMAGE="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:$IMAGE_SHA"
+    #       docker pull $IMAGE
+    #       echo "Using image: $IMAGE"
 
     # - name: Deploy to Kubernetes
     #   run: |
