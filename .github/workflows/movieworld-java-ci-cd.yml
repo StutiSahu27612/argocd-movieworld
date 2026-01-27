@@ -20,6 +20,8 @@ jobs:
   CI:
    name: Build and Deploy to GCP
    runs-on: ubuntu-22.04
+   outputs:
+      image_sha: ${{ steps.set-image-tag.outputs.image_sha }}
 
    env:  
       PROJECT_ID: 'project-stuti-477509' # TODO: update to your Google Cloud project ID
@@ -166,6 +168,11 @@ jobs:
      run: |
          gcloud auth configure-docker us-central1-docker.pkg.dev
          docker push ${{ steps.build_image.outputs.DOCKER_TAG }}
+
+   - name: Set image tag for next workflow
+     id: set-image-tag-for-next
+     run: |
+          echo "image_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
 
    - name: Set image tag
      id: set-image-tag
