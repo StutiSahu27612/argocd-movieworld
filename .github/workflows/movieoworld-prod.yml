@@ -76,6 +76,22 @@ jobs:
       run: |
           docker pull "$IMAGE_TAG"
 
+
+    - name: Update deployment manifest
+      run: |
+        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/prod/deployment.yaml
+        cat kubernetes/manifests/prod/deployment.yaml
+
+    - name: Commit and push manifest
+      run: |
+         git config user.name "github-actions"
+         git config user.email "github-actions@github.com"
+         git add kubernetes/manifests/prod/deployment.yaml
+         git commit -m "Update movie deployment to $IMAGE_TAG"
+         git push
+
+
+
     # -  name: Get image SHA
     #    run: |
     #       IMAGE_SHA="${{ github.event.workflow_run.outputs.image_sha }}"
@@ -100,24 +116,6 @@ jobs:
     #     REPO_NAME=$(basename "$GITHUB_REPOSITORY")
     #     IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
     #     echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
- 
-    - name: Update deployment manifest
-      run: |
-        IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
-        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/prod/deployment.yaml
-        cat kubernetes/manifests/prod/deployment.yaml
-
-    - name: Commit and push manifest
-      run: |
-         git config user.name "github-actions"
-         git config user.email "github-actions@github.com"
-         git add kubernetes/manifests/prod/deployment.yaml
-         git commit -m "Update movie deployment to $IMAGE_TAG"
-         git push
-
-
-
-
 
 
 
