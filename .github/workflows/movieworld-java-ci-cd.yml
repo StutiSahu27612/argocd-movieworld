@@ -144,13 +144,23 @@ jobs:
         DOCKER_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
          echo "::set-output name=DOCKER_TAG::${DOCKER_TAG}"  # Set the DOCKER_TAG as output
          docker build --tag ${DOCKER_TAG} .
+
         
 
     # List Images
    - name: List Images
      run: |
          docker images 
+# Build job
+   - name: Save image tag
+     run: |
+      echo "${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" > image-tag.txt
 
+   - name: Upload image tag artifact
+     uses: actions/upload-artifact@v3
+     with:
+      name: image-tag
+      path: image-tag.txt
     # Scan Docker Image
    - name: Scan Docker Image
      uses: aquasecurity/trivy-action@0.20.0
