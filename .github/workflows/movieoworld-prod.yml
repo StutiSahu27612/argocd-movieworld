@@ -79,7 +79,7 @@ jobs:
 
     - name: Update deployment manifest
       run: |
-        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/prod/deployment.yaml
+        sed -i "s|image: .*|image: $IMAGE_TAG|" kubernetes/manifests/prod/deployment.yaml
         cat kubernetes/manifests/prod/deployment.yaml
 
     - name: Commit and push manifest
