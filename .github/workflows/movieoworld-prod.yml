@@ -1,15 +1,21 @@
+# name: Update Deployment Manifest
+
+# # Allows manual trigger from the Actions tab
+# on:
+#   workflow_dispatch:  # manual trigger
+#     # You *could* add inputs here if needed
+#     # inputs:
+#     #   environment:
+#     #     description: 'Environment (dev/prod)'
+#     #     required: true
+#     #     default: 'dev'
 name: Update Deployment Manifest
 
-# Allows manual trigger from the Actions tab
 on:
-  workflow_dispatch:  # manual trigger
-    # You *could* add inputs here if needed
-    # inputs:
-    #   environment:
-    #     description: 'Environment (dev/prod)'
-    #     required: true
-    #     default: 'dev'
-
+  workflow_run:
+    workflows: ["MovieWorld CI/CD Pipeline"]
+    types:
+      - completed
 permissions:  
     id-token: write 
     actions: write
@@ -17,10 +23,15 @@ permissions:
     contents: write
 
 jobs:
-  update-manifest: 
-    runs-on: ubuntu-latest
-
-    steps:
+ update-manifest:
+   runs-on: ubuntu-latest
+   env:  
+    PROJECT_ID: 'project-stuti-477509' # TODO: update to your Google Cloud project ID
+    REGION: 'us-central1' # TODO: update to your region
+    SERVICE: 'argocd-poc-repo' # TODO: update to your service name
+    IMAGE_NAME: 'movieworld-app-image'  # DOCKER Image Name   
+    
+   steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
@@ -39,10 +50,10 @@ jobs:
     - name: Configure docker for GAR
       run: |
           gcloud auth configure-docker us-central1-docker.pkg.dev
-
+  
     - name: Pull already built image
       run: |
-          IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+          IMAGE="us-central1-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.SERVICE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
           docker pull $IMAGE
           echo "Using image: $IMAGE"
 
@@ -59,7 +70,7 @@ jobs:
     #     REPO_NAME=$(basename "$GITHUB_REPOSITORY")
     #     IMAGE_TAG="${REPO_NAME}-${SHORT_SHA}"
     #     echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
+ 
     - name: Update deployment manifest
       run: |
         IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
@@ -68,11 +79,11 @@ jobs:
 
     - name: Commit and push manifest
       run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
-        git add kubernetes/manifests/prod/deployment.yaml
-        git commit -m "Update movie deployment to $IMAGE_TAG"
-        git push
+         git config user.name "github-actions"
+         git config user.email "github-actions@github.com"
+         git add kubernetes/manifests/prod/deployment.yaml
+         git commit -m "Update movie deployment to $IMAGE_TAG"
+         git push
 
 
 
