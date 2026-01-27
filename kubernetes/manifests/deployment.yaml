@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: movieworld
-        image: us-central1-docker.pkg.dev/project-stuti-477509/argocd-poc-repo/movieworld-app-image:dd340e138c2d2bf705f98b4cfb37543b8d5029f6
+        image: us-central1-docker.pkg.dev/project-stuti-477509/argocd-poc-repo/movieworld-app-image:f484da6f5260cc979d9e18b99b4ef11028124cb2
         imagePullPolicy: Always
         ports:
         - containerPort: 9090
