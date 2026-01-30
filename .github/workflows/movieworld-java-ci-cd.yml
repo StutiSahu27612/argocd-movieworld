@@ -4,7 +4,7 @@ on:
   push:
     branches: 
       - feature-app
-      - main
+      # - main
   
 permissions:  
     id-token: write 
@@ -201,6 +201,61 @@ jobs:
        git add kubernetes/manifests/dev/deployment.yaml
        git commit -m "Update movie deployment to $IMAGE_TAG"
        git push
+    
+   - name: Configure docker for GAR
+     run: |
+      gcloud auth configure-docker us-central1-docker.pkg.dev
+
+   - name: Download image tag
+     uses: actions/download-artifact@v4
+     with:
+          name: image-tag
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+   - name: Read image tag
+     id: read-tag
+     run: |
+          IMAGE_TAG=$(cat image-tag.txt)
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+   - name: Show debug
+     run: |
+        echo "Pulling image: $IMAGE_TAG"
+
+   - name: Pull already built image
+     run: |
+          docker pull "$IMAGE_TAG"
+
+
+   - name: Update deployment manifest
+     run: |
+        sed -i "s|image: .*|image: $IMAGE_TAG|" kubernetes/manifests/prod/deployment.yaml
+        cat kubernetes/manifests/prod/deployment.yaml
+
+   - name: Commit and push manifest
+     run: |
+         git config user.name "github-actions"
+         git config user.email "github-actions@github.com"
+         git add kubernetes/manifests/prod/deployment.yaml
+         git commit -m "Update movie deployment to $IMAGE_TAG"
+         git push
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   # CD:
   #  name: Deploy to Kubernetes (GKE)
