@@ -191,6 +191,7 @@ jobs:
    - name: Update deployment manifest
      run: |
        IMAGE="us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}"
+       echo "IMAGE=us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GAR_REPOSITORY }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
        sed -i "s|image: .*|image: $IMAGE|" kubernetes/manifests/dev/deployment.yaml
        cat kubernetes/manifests/dev/deployment.yaml
 
@@ -202,12 +203,12 @@ jobs:
        git commit -m "Update movie deployment to $IMAGE_TAG"
        git push
 
-   - name: Authenticate to Google Cloud
-     id: auth-gcp
-     uses: google-github-actions/auth@v2
-     with:
-          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
+   # - name: Authenticate to Google Cloud
+   #   id: auth-gcp
+   #   uses: google-github-actions/auth@v2
+   #   with:
+   #        workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+   #        service_account: ${{ secrets.SERVICE_ACCOUNT_EMAIL }}
    - name: Configure docker for GAR
      run: |
       gcloud auth configure-docker us-central1-docker.pkg.dev
