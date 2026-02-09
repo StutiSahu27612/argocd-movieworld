@@ -20,7 +20,7 @@ jobs:
       image_sha: ${{ steps.set-image-tag.outputs.image_sha }}
 
    env:  
-      PROJECT_ID: 'project-stuti-477509' # TODO: update to your Google Cloud project ID
+      PROJECT_ID: 'stuti-486806' # TODO: update to your Google Cloud project ID
       REGION: 'us-central1' # TODO: update to your region
       SERVICE: 'argocd-poc-repo' # TODO: update to your service name
       IMAGE_NAME: 'movieworld-app-image'  # DOCKER Image Name   
@@ -128,9 +128,9 @@ jobs:
    - name: Set up Cloud SDK
      uses: google-github-actions/setup-gcloud@v2
 
-   - name: List GCP storage
-     run: |
-      gcloud storage ls
+   # - name: List GCP storage
+   #   run: |
+   #    gcloud storage ls
 
 
      # Create Docker Image with Tag
