@@ -128,9 +128,9 @@ jobs:
    - name: Set up Cloud SDK
      uses: google-github-actions/setup-gcloud@v2
 
-   - name: List GCP storage
-     run: |
-      gcloud storage ls
+   # - name: List GCP storage
+   #   run: |
+   #    gcloud storage ls
 
 
      # Create Docker Image with Tag
