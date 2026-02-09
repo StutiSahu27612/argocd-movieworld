@@ -6,7 +6,7 @@ on:
       - feature-app
       - main
   
-permissions:  
+permissions:   
     id-token: write 
     actions: write
     packages: write # Needed for Docker operation
