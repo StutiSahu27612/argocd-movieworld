@@ -2,7 +2,7 @@ name: MovieWorld CI/CD Pipeline
   
 on: 
   push:
-    branches: 
+    branches:  
       - feature-app
       - main
   
