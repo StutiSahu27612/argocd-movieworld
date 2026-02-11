@@ -4,7 +4,7 @@ metadata:
   name: movieworld-config
   namespace: movie
 data:
-  application.properties: |
+  application.properties: | 
     # Database Configuration
     spring.datasource.url=jdbc:mysql://${DB_HOST:movieworld-mysql.movie.svc.cluster.local}:${DB_PORT:3306}/${DB_NAME:movieworld}
     spring.datasource.username=${DB_USER:movieworld}
